@@ -72,4 +72,4 @@
 ## Сезон 6 и дальше
 - `materials/season-6/hq.html` — игра сезона 6 (эпизоды 41–48) в интерфейсе «операционный штаб».
 - `materials/season-6-concept.md` … `season-10-concept.md` — итог сезона 6 и концепции с планами сцен сезонов 7–10 (эпизоды 49–80).
-- `teasers/` — ролики по 20 секунд для сезонов 6–10 (исходник: `teasers/src/clip.html`, `render.js`; шрифты берутся из `fonts/`).
+- `teasers/` — ролики по 20 секунд для сезонов 6–10 (исходник: `teasers/src/clip.html`, `render.js`).
