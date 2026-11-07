@@ -479,7 +479,7 @@ function helperSVG() {
 function timeSVG() {
   const X = t => 110 + (t - X0) / (X1 - X0) * 530, Y = i => 66 + i * 60;
   let s = '<svg viewBox="0 0 660 450" role="img" aria-label="Пятница: почта, помощник, права, отправка и клиенты">';
-  ['15:30', '16:30', '17:30'].forEach((dn, k) => { const t = [0, 60, 120][k]; s += `<line x1="${X(t)}" x2="${X(t)}" y1="40" y2="410" style="stroke:var(--rule)"/><text x="${X(t) + 4}" y="430" style="font:500 11px var(--f-m);fill:var(--ink2)">${dn}</text>`; });
+  ['09:10', '10:10', '11:10'].forEach((dn, k) => { const t = [0, 60, 120][k]; s += `<line x1="${X(t)}" x2="${X(t)}" y1="40" y2="410" style="stroke:var(--rule)"/><text x="${X(t) + 4}" y="430" style="font:500 11px var(--f-m);fill:var(--ink2)">${dn}</text>`; });
   LANES.forEach((n, i) => { s += `<text x="104" y="${Y(i) + 4}" text-anchor="end" style="font:600 10px var(--f-b);fill:var(--ink)">${n}</text><line x1="110" x2="640" y1="${Y(i)}" y2="${Y(i)}" style="stroke:var(--rule)"/>`; });
   NOISE.forEach((a, i) => a.forEach(t => { s += `<circle cx="${X(t)}" cy="${Y(i)}" r="4" style="fill:var(--ink2);opacity:.45"/>`; }));
   Object.entries(KEYEV).forEach(([id, [lane, txt]]) => {
