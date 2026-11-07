@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Обновление, которое открыло дверь</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;600;700&display=swap">
+<style>
+/* Layout concept: чертёжные листы A3 с рамкой, сеткой и штампом; на узком экране лист вытягивается в одну колонку. */
+:root{
+  --bg:#e8ecf1;--paper:#fbfcfe;--paper2:#eef2f7;--ink:#14213a;--ink2:#4f5e7a;--rule:#c6d0de;--grid:rgba(20,33,58,.05);
+  --sig:#e0560a;--on-sig:#ffffff;
+  --hw:#0b7a69;--sw:#2a50cf;--dt:#7a3eb3;
+  --unk:#8390a5;--sus:#c47a00;--con:#c62828;--pro:#168a50;--cln:#667a90;
+  --shadow:0 1px 0 rgba(20,33,58,.06),0 14px 30px -20px rgba(20,33,58,.4);
+  --f-d:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-b:"Onest",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-m:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0a111f;--paper:#111b30;--paper2:#0d1628;--ink:#e7edf8;--ink2:#9fb0cc;--rule:#2a3b60;--grid:rgba(160,185,235,.06);
+  --sig:#ff8a3d;--on-sig:#1a0f05;--hw:#38c9ae;--sw:#86a0ff;--dt:#bb90f2;
+  --unk:#71819c;--sus:#f2b232;--con:#ff7070;--pro:#4fd592;--cln:#8396ae;
+  --shadow:0 14px 30px -20px rgba(0,0,0,.7);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a111f;--paper:#111b30;--paper2:#0d1628;--ink:#e7edf8;--ink2:#9fb0cc;--rule:#2a3b60;--grid:rgba(160,185,235,.06);
+  --sig:#ff8a3d;--on-sig:#1a0f05;--hw:#38c9ae;--sw:#86a0ff;--dt:#bb90f2;
+  --unk:#71819c;--sus:#f2b232;--con:#ff7070;--pro:#4fd592;--cln:#8396ae;
+  --shadow:0 14px 30px -20px rgba(0,0,0,.7);color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 15px/1.5 var(--f-b);padding-block:20px 48px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:not-allowed}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--sig);outline-offset:2px}
+.page{max-width:1760px;margin-inline:auto}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.tab{display:flex;gap:10px;align-items:baseline;padding:10px 14px;border:1.5px solid var(--rule);background:var(--paper);text-decoration:none;font-weight:600}
+.tab span{font:500 .75rem var(--f-m);color:var(--ink2)}
+.tab[aria-current="page"]{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+.tab[aria-current="page"] span{color:var(--paper);opacity:.7}
+
+.poster{container:poster/inline-size}
+.sheet{position:relative;display:flex;flex-direction:column;gap:1em;font-size:15px;padding:1.3em 1.2em 1em;
+  background-color:var(--paper2);background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:1.7em 1.7em;border:1px solid var(--rule);box-shadow:var(--shadow)}
+.sheet::before{content:"";position:absolute;inset:.45em;border:1px solid var(--rule);pointer-events:none}
+.ph{display:flex;flex-wrap:wrap;gap:1em 2em;justify-content:space-between;align-items:flex-end;position:relative}
+.role{margin:0 0 .6em;font:500 .8em var(--f-m);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);display:flex;align-items:center;gap:.6em}
+.sq{width:.8em;height:.8em;background:var(--lab,var(--sig));display:inline-block}
+.ttl{margin:0;font:600 1.9em/1.08 var(--f-d);letter-spacing:-.01em;text-wrap:balance}
+.sub{margin:.6em 0 0;max-width:64ch;color:var(--ink2)}
+.ctl{display:flex;flex-wrap:wrap;gap:.8em 1.4em;align-items:flex-end}
+.lbl{display:block;font:500 .72em var(--f-m);letter-spacing:.12em;text-transform:uppercase;color:var(--ink2);margin-bottom:.3em}
+.pips{display:inline-flex;gap:.25em;align-items:center}
+.pip{width:1.1em;height:1.1em;border:1.5px solid var(--ink);display:inline-block}
+.pip.on{background:var(--ink)}
+.pn{margin-left:.6em;font:500 .85em var(--f-m)}
+.clock b{font:600 1.7em/1 var(--f-m);font-variant-numeric:tabular-nums}
+.ctl-b{display:flex;gap:.5em;flex-wrap:wrap}
+.btn{padding:.55em .9em;border:1.5px solid var(--ink);background:transparent;font:500 .78em var(--f-m);letter-spacing:.06em;text-transform:uppercase;text-decoration:none;display:inline-block}
+.btn:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+.btn.sig{background:var(--sig);border-color:var(--sig);color:var(--on-sig)}
+.btn.sig:hover:not(:disabled){filter:brightness(1.08);background:var(--sig);color:var(--on-sig)}
+.btn:disabled{opacity:.4}
+
+.body{display:grid;gap:1em;grid-template-columns:minmax(0,1fr);position:relative}
+.col{display:flex;flex-direction:column;gap:1em;min-width:0;min-height:0}
+.pnl{background:var(--paper);border:1px solid var(--rule);padding:.9em 1em;display:flex;flex-direction:column;gap:.7em;min-width:0;min-height:0}
+.pnl h3{margin:0;font:600 .76em var(--f-m);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2);display:flex;gap:.6em;align-items:center}
+.pnl h3::before{content:"";width:.7em;height:.7em;background:var(--lab,var(--ink2));flex:none}
+.bench{border-top:3px solid var(--lab)}
+.scroll{overflow:auto;min-height:0}
+.rows>*{flex:none}
+.proto .log.scroll{max-height:9em}
+.log.scroll{max-height:20em}
+small{font-size:.82em;color:var(--ink2)}
+.tg{font:500 .72em var(--f-m);letter-spacing:.06em;text-transform:uppercase;padding:.15em .5em;border:1px solid currentColor;white-space:nowrap}
+.tg.con{color:var(--con)}.tg.sus{color:var(--sus)}.tg.cln{color:var(--cln)}.tg.pro{color:var(--pro)}
+
+.mapwrap svg{width:100%;height:auto;aspect-ratio:660/450;display:block}
+.st-unk{--c:var(--unk)}.st-sus{--c:var(--sus)}.st-con{--c:var(--con)}.st-pro{--c:var(--pro)}.st-cln{--c:var(--cln)}
+.node{cursor:pointer;outline:none}
+.node .disc{fill:var(--paper);stroke:var(--c);stroke-width:3}
+.node .halo{fill:none;stroke:var(--c);stroke-width:1.5;stroke-dasharray:3 4;opacity:0}
+.node.ring .halo{opacity:1;stroke:var(--sig);stroke-width:2.2}
+.node:focus-visible .halo{opacity:1;stroke:var(--sig)}
+.node.dim,.link.dim{opacity:.28}
+.nl{font:600 12.5px var(--f-b);fill:var(--ink)}
+.ns{font:500 10px var(--f-m);fill:var(--c);letter-spacing:.05em;text-transform:uppercase}
+.link line{stroke:var(--c);stroke-width:3}
+.link rect{fill:var(--paper);stroke:var(--c);stroke-width:1.4}
+.lc{font:600 11px var(--f-m);fill:var(--c)}.ln{font:500 10px var(--f-b);fill:var(--ink2)}
+.veil .disc{stroke:var(--unk);stroke-dasharray:5 5}
+.veil text{font:600 26px var(--f-d);fill:var(--unk)}
+.ico{stroke:var(--ink);fill:none;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.legend{display:flex;flex-wrap:wrap;gap:.4em 1.1em;font:500 .76em var(--f-m);color:var(--ink2)}
+.legend i{display:inline-block;width:.8em;height:.8em;margin-right:.4em;background:var(--c)}
+.banner{border:1.5px solid var(--ink);padding:.7em .9em;background:var(--paper2)}
+.banner b{display:block;margin-bottom:.2em}
+.banner.win{border-color:var(--pro)}.banner.lose{border-color:var(--con)}.banner.warn{border-color:var(--sus)}
+.stars{font-size:1.4em;letter-spacing:.1em;color:var(--sig)}
+.banner .btn{margin-top:.5em}
+
+.hlist{display:flex;flex-direction:column;gap:.35em}
+.hrow{display:grid;grid-template-columns:3.4em 1fr auto;gap:.6em;align-items:center;text-align:left;padding:.45em .6em;border:1px solid var(--rule);background:var(--paper)}
+.hrow:hover:not(:disabled){border-color:var(--ink)}
+.hrow .hc{font:600 .82em var(--f-m);line-height:1.2}
+.hrow .hc em{display:block;font-style:normal;color:var(--ink2);font-weight:500}
+.hrow .ht b{display:block;font-size:.92em}
+.hrow.sel{border:2px solid var(--sig);background:var(--paper2)}
+.hrow.rel{border-style:dashed;border-color:var(--ink)}
+.hrow:disabled{opacity:.45}
+.hrow.conf,.hrow.rej{opacity:1}
+.hrow.rej .ht b{text-decoration:line-through;text-decoration-thickness:1px}
+.labs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4em}
+.lab{padding:.5em .6em;border:1.5px solid var(--lab);background:var(--paper);text-align:left}
+.lab b{display:block;color:var(--lab);font-size:.9em}
+.lab.on{background:var(--lab)}
+.lab.on b,.lab.on small{color:var(--paper)}
+.lab:disabled{opacity:.45}
+.sum{margin:0;min-height:2.6em}
+.kgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4em}
+.kc{display:flex;flex-direction:column;gap:.1em;padding:.5em .6em;border:1.5px solid var(--ink);background:var(--paper);text-align:left}
+.kc .kcode{font:600 .78em var(--f-m);color:var(--ink2)}
+.kc b{font-size:.88em}
+.kc em{font:500 .7em var(--f-m);text-transform:uppercase;letter-spacing:.06em;font-style:normal;color:var(--ink2)}
+.kc.done{border-color:var(--pro);background:var(--paper2)}.kc.done em{color:var(--pro)}
+.kc:disabled:not(.done){opacity:.45;border-style:dashed}
+.log{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.4em}
+.log li{padding:.4em .6em;border-left:3px solid var(--rule);background:var(--paper2);font-size:.88em}
+.log li .n{font:500 .8em var(--f-m);color:var(--ink2);margin-right:.5em}
+.log li.ok{border-color:var(--pro)}.log li.miss{border-color:var(--cln)}.log li.warn{border-color:var(--sus)}.log li.info{border-color:var(--sw)}
+
+.stamp{display:flex;flex-wrap:wrap;gap:.6em 1em;justify-content:space-between;align-items:stretch;position:relative}
+.fine{margin:0;flex:1 1 20em;font-size:.76em;color:var(--ink2);align-self:center}
+.cells{display:flex;flex-wrap:wrap;border:1px solid var(--ink)}
+.cells span{padding:.35em .7em;font:500 .72em var(--f-m);letter-spacing:.04em;border-right:1px solid var(--ink)}
+.cells span:last-child{border-right:0}
+
+.svgbox svg{width:100%;height:auto;display:block}
+.spot{cursor:pointer;outline:none}
+.spot circle{fill:var(--paper);stroke:var(--lab);stroke-width:2}
+.spot text{font:600 12px var(--f-m);fill:var(--lab);text-anchor:middle}
+.spot.seen circle{fill:var(--lab)}.spot.seen text{fill:var(--paper)}
+.spot:focus-visible circle{stroke:var(--sig)}
+.part{fill:var(--paper2);stroke:var(--ink);stroke-width:2}
+.partl{fill:none;stroke:var(--ink);stroke-width:2}
+.rows{display:flex;flex-direction:column;gap:.3em}
+.rrow{display:grid;grid-template-columns:1.6em 1fr;gap:.5em;text-align:left;padding:.4em .5em;border:1px solid var(--rule);background:var(--paper)}
+.rrow .num{font:600 .85em var(--f-m);color:var(--lab)}
+.rrow b{font-size:.88em}
+.rrow small{display:block}
+.rrow.seen{border-color:var(--lab)}
+.msg{margin:0;padding:.5em .7em;border:1.5px solid var(--sus);background:var(--paper2);font-size:.9em}
+.msg.ok{border-color:var(--pro)}
+.swrow{display:grid;gap:.3em;padding:.5em .6em;border:1px solid var(--rule);background:var(--paper)}
+.swrow>b{font-size:.88em}
+.seg2{display:grid;grid-template-columns:1fr 1fr;text-align:left}
+.seg2 span{padding:.35em .6em;border:1.5px solid var(--ink);font-size:.8em}
+.seg2 span+span{border-left:0}
+.seg2 .act{background:var(--ink);color:var(--paper)}
+.seg2.on .act{background:var(--pro);border-color:var(--pro);color:var(--paper)}
+.swrow{text-align:left}
+.meter{position:relative;height:.9em;border:1.5px solid var(--ink);background:var(--paper)}
+.meter i{position:absolute;inset:0 auto 0 0;background:var(--c,var(--con))}
+.ticks{display:flex;justify-content:space-between;font:500 .7em var(--f-m);color:var(--ink2)}
+.chips{display:flex;gap:.4em;flex-wrap:wrap}
+.chip{padding:.3em .7em;border:1.5px solid var(--ink);font:500 .74em var(--f-m);background:transparent;text-transform:uppercase;letter-spacing:.05em}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.ltable{max-height:13em;overflow:auto;border:1px solid var(--rule)}
+.lrow{display:grid;grid-template-columns:3.2em 4.8em 1fr 1fr;gap:.5em;width:100%;text-align:left;padding:.3em .5em;border:0;border-bottom:1px solid var(--rule);background:var(--paper);font-size:.8em}
+.lrow.h{font:600 .7em var(--f-m);text-transform:uppercase;color:var(--ink2);position:sticky;top:0;cursor:default}
+.lrow[aria-pressed="true"]{background:var(--paper2);box-shadow:inset 3px 0 var(--sig)}
+.lrow span:first-child{font-family:var(--f-m)}
+.accs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.4em}
+.acc{padding:.5em;border:1px solid var(--rule);background:var(--paper);font-size:.82em}
+.acc code{display:block;font:600 .95em var(--f-m);margin-top:.2em}
+.acc.match{border-color:var(--con)}.acc.match code{color:var(--con)}
+.proto{grid-column:1/-1}
+.pgrid{display:grid;gap:1em;grid-template-columns:minmax(0,1fr)}
+.done-row{display:grid;grid-template-columns:auto 1fr;gap:.2em .7em;align-items:baseline;font-size:.88em}
+
+.rcards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4em}
+.rc{padding:.5em .6em;border:1.5px solid var(--ink);background:var(--paper);text-align:left}
+.rc b{display:block;font-size:.9em}
+.rc[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.rc[aria-pressed="true"] small{color:var(--paper);opacity:.8}
+.rdet{padding:.7em .8em;border:1px solid var(--rule);background:var(--paper2);font-size:.9em}
+.rdet p{margin:.25em 0}
+.facts{display:flex;flex-wrap:wrap;gap:.4em}
+.fact{padding:.3em .6em;border:1px solid var(--ink);font:500 .76em var(--f-m)}
+.steps{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.3em}
+.stp{padding:.5em .2em;border:1.5px solid var(--ink);background:var(--paper);font:500 .72em var(--f-m);text-align:center}
+.stp[aria-current="step"]{background:var(--sig);border-color:var(--sig);color:var(--on-sig)}
+.q{display:flex;flex-direction:column;gap:.4em;padding-bottom:.6em;border-bottom:1px dashed var(--rule)}
+.q p{margin:0;font-weight:600;font-size:.92em}
+.opt{padding:.4em .6em;border:1.5px solid var(--rule);background:var(--paper);text-align:left;font-size:.88em}
+.opt:hover:not(:disabled){border-color:var(--ink)}
+.opt.right{border-color:var(--pro);background:var(--paper2)}
+.opt.wrong{border-color:var(--con)}
+.eps{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:.3em}
+.ep{padding:.5em 0;border:1.5px solid var(--ink);background:var(--paper);font:600 .85em var(--f-m)}
+.ep.soon{border-style:dashed;color:var(--ink2)}
+.ep[aria-current="true"]{background:var(--ink);color:var(--paper);border-style:solid}
+
+.toast-wrap{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;pointer-events:none;
+  padding:0 max(16px,env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+#toast{background:var(--ink);color:var(--paper);padding:.6em 1em;max-width:34em;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;font-size:.92rem}
+#toast.show{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+
+@container poster (min-width:760px){
+  .b3,.b-ply{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .b3>.col:first-child{grid-column:1/-1}
+  .ttl{font-size:2.3em}
+  .pgrid{grid-template-columns:1fr 1fr}
+}
+@container poster (min-width:1180px){
+  .sheet{font-size:1.02cqw;aspect-ratio:420/297;overflow:hidden;padding:1.5em 1.7em 1.1em}
+  .ttl{font-size:2.4em}
+  .body{flex:1;min-height:0}
+  .b3{grid-template-columns:1.5fr 1.05fr .95fr}
+  .b3>.col:first-child{grid-column:auto}
+  .b-eng{grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:minmax(0,1fr) auto}
+  .b-ply{grid-template-columns:1fr 1.1fr .95fr}
+  .grow{flex:1}
+  .pnl>.scroll{flex:1 1 0}
+  .scroll,.log.scroll{max-height:none;overflow:auto}
+  .proto .log.scroll{max-height:9em}
+}
+[hidden]{display:none!important}body{margin:0}</style>
+<style>
+.pip.tr{border-color:var(--sig)}.pip.tr.on{background:var(--sig)}
+.facil{margin-top:20px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){.facil{grid-template-columns:1fr 1fr}.facil .wide{grid-column:1/-1}}
+.facil section{background:var(--paper);border:1px solid var(--rule);padding:16px 18px;min-width:0}
+.facil h2{margin:0 0 10px;font:600 .8rem var(--f-m);letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
+.facil p,.facil li{font-size:.95rem}
+.facil ol,.facil ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:.4em}
+.tablewrap{overflow-x:auto}
+.cmpt{width:100%;border-collapse:collapse;font-size:.88rem;min-width:520px}
+.cmpt th,.cmpt td{text-align:left;padding:.5em .6em;border-bottom:1px solid var(--rule);vertical-align:top}
+.cmpt th{font:600 .72rem var(--f-m);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.say{margin:0 0 .6em;padding:.5em .8em;border-left:3px solid var(--sig);background:var(--paper2)}
+.say b{display:block;font:500 .72rem var(--f-m);letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-bottom:.2em}
+.prot-t{width:100%;min-height:9em;font:500 .78em/1.4 var(--f-m);background:var(--paper);color:var(--ink);border:1px solid var(--rule);padding:.5em;resize:vertical;margin-top:.5em}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="tabs" aria-label="Плакаты">
+  <a class="tab" href="#detective" data-r="detective"><span>01</span>Сыщик</a>
+  <a class="tab" href="#engineer" data-r="engineer"><span>02</span>Инженер лаборатории</a>
+  <a class="tab" href="#player" data-r="player"><span>03</span>Участник игры</a>
+</nav>
+<div id="v-detective">
+<div class="poster"><div class="sheet" style="--lab:var(--sw)">
+  <header class="ph">
+    <div>
+      <p class="role"><i class="sq"></i>Сцена 3 · Эпизод 3 из 8</p>
+      <h1 class="ttl">Обновление, которое открыло дверь</h1>
+      <p class="sub">Патч закрыл старую дыру, но сам включил новую. Найдите её, спасите данные и закройте доступ раньше, чем из сети придёт первый запрос.</p>
+    </div>
+    <div class="ctl">
+      <div><span class="lbl">Часы экспертов</span><span class="pips" id="d-pips" role="img"></span></div>
+      <div><span class="lbl">Стабильность</span><span class="pips" id="d-trust" role="img"></span></div>
+      <div class="clock"><span class="lbl">Таймер дела</span><b id="d-time">10:00</b></div>
+      <div class="ctl-b"><button class="btn" id="d-start">Запустить таймер</button><button class="btn" id="d-reset">Сначала</button></div>
+    </div>
+  </header>
+  <div class="body b3">
+    <div class="col">
+      <section class="pnl grow">
+        <h3>Карта улик</h3>
+        <div class="mapwrap" id="d-map"></div>
+        <div class="legend"><span class="st-unk"><i></i>неизвестно</span><span class="st-sus"><i></i>подозрительно</span><span class="st-con"><i></i>подтверждено</span><span class="st-pro"><i></i>защищён</span><span class="st-cln"><i></i>чисто</span></div>
+        <div class="banner" id="d-banner" role="status"></div>
+      </section>
+    </div>
+    <div class="col">
+      <section class="pnl"><h3>Гипотезы</h3><div class="hlist" id="d-hyp"></div></section>
+      <section class="pnl"><h3>Проверка</h3>
+        <p class="sum" id="d-sum"></p>
+        <div class="labs" id="d-labs"></div>
+        <button class="btn sig" id="d-check">Проверить</button>
+        <small>Своя лаборатория 1 час, чужая 2 часа. Проверка живой системы без резервной копии стоит 1 стабильности.</small>
+      </section>
+    </div>
+    <div class="col">
+      <section class="pnl"><h3>Меры</h3><div class="kgrid" id="d-k"></div></section>
+      <section class="pnl grow"><h3>Журнал дела</h3><ol class="log scroll" id="d-log" aria-live="polite"></ol></section>
+    </div>
+  </div>
+  <footer class="stamp">
+    <p class="fine">Учебная модель: вымышленные устройства и службы, обобщённые описания слабых мест, адрес из зарезервированного диапазона для документации.</p>
+    <div class="cells"><span>Центр «Контур»</span><span>Эпизод 3 · Обновление, которое открыло дверь</span><span>Сцена 3</span><span>Формат А3</span><span>Прототип v0.3</span></div>
+  </footer>
+</div></div>
+
+<div class="facil">
+  <section class="wide"><h2>Что изменилось по сравнению со сценой 2</h2>
+    <div class="tablewrap"><table class="cmpt">
+      <tr><th>Условие</th><th>Сцена 2. Ноутбук</th><th>Сцена 3. Обновление</th></tr>
+      <tr><td>Часы экспертов</td><td>7</td><td>8</td></tr>
+      <tr><td>Таймер</td><td>14 минут</td><td>10 минут: гонка</td></tr>
+      <tr><td>Ресурс</td><td>Доверие, 3 единицы</td><td>Стабильность системы, 3 единицы. Падает при сбоях и поспешных действиях</td></tr>
+      <tr><td>Правило порядка</td><td>Сначала акт, потом менять устройство</td><td>Сначала копия, потом отключить службу, и только потом закрывать доступ и ставить поправку</td></tr>
+      <tr><td>Новое событие</td><td>нет</td><td>Окно атаки на половине времени: если служба ещё открыта, минус 1 час</td></tr>
+      <tr><td>Ложная мера</td><td>Проверка рабочего ПК</td><td>Откат всего обновления: возвращает старую дыру</td></tr>
+      <tr><td>Упрощение</td><td>Сужение до ноутбука</td><td>Сужение до рабочих ПК: копия, отключение службы, предупреждение</td></tr>
+      <tr><td>Связь с прошлыми делами</td><td>Адрес во входе в облако</td><td>Тот же адрес стучится к новой службе</td></tr>
+    </table></div>
+  </section>
+  <section><h2>Сценарий вслух</h2>
+    <p class="say"><b>Начало</b>«Вчера вечером на 12 рабочих местах поставили обновление. Оно закрыло старую дыру, но после него с этих ПК что-то слушает сеть. У вас 8 часов экспертов, 10 минут и три единицы стабильности. Всё чинить на ходу нельзя».</p>
+    <p class="say"><b>Половина времени</b>«Прошла половина времени. Осталось 5 минут. Если служба всё ещё открыта, из сети уже стучат».</p>
+    <p class="say"><b>Упрощение</b>«Центр сужает задачу до рабочих ПК. Сначала спасите данные, потом чините. Новое задание: копия, отключение службы, предупреждение пользователей».</p>
+    <p class="say"><b>Победа</b>«Служба отключена, поправка применена, доступ закрыт, пользователи предупреждены. Хорошая работа. Но у одного из сотрудников заблокировался телефон, а журнал снова показал знакомый адрес: об этом следующее дело».</p>
+  </section>
+  <section><h2>Что наблюдать и спросить</h2>
+    <ol>
+      <li>Сделал ли игрок копию до первого изменения? Когда вспомнил про неё?</li>
+      <li>Попался ли на откат всего обновления? Почему он показался разумным?</li>
+      <li>Заметил ли, что окно атаки наступило на половине времени?</li>
+      <li>Связал ли адрес с делами о камере и ноутбуке?</li>
+      <li>Вопрос: чем гонка отличается от дела о ноутбуке, где время было свободнее?</li>
+      <li>Вопрос: что стоило дороже: потерять час или потерять стабильность?</li>
+    </ol>
+  </section>
+</div>
+</div>
+<div id="v-engineer" hidden><div class="poster"><div class="sheet">
+  <header class="ph">
+    <div>
+      <p class="role" style="--lab:var(--sw)"><i class="sq"></i>Роль 02 · Инженер лаборатории</p>
+      <h1 class="ttl">Стенд: обновление на рабочих ПК</h1>
+      <p class="sub">Три лаборатории проверяют обновление, которое открыло дверь. Проведите опыты и передайте находки сыщику.</p>
+    </div>
+    <div class="ctl">
+      <div class="clock"><span class="lbl">Опыты завершены</span><b id="e-count">0 из 3</b></div>
+      <div class="ctl-b"><button class="btn" id="e-reset">Опыты заново</button></div>
+    </div>
+  </header>
+  <div class="body b-eng">
+    <section class="pnl bench" style="--lab:var(--hw)"><h3>Аппаратная · осмотр сети</h3><div class="scroll rows" id="e-hw"></div></section>
+    <section class="pnl bench" style="--lab:var(--sw)"><h3>Программная · порядок работ</h3><div class="scroll rows" id="e-sw"></div></section>
+    <section class="pnl bench" style="--lab:var(--dt)"><h3>Данные · журнал и уведомление</h3><div class="scroll rows" id="e-dt"></div></section>
+    <section class="pnl proto"><h3>Протокол</h3>
+      <div class="pgrid">
+        <div><span class="lbl">Журнал экспериментов</span><ol class="log scroll" id="e-log" aria-live="polite"></ol></div>
+        <div><span class="lbl">Выводы лабораторий</span><div id="e-out"></div></div>
+      </div>
+    </section>
+  </div>
+  <footer class="stamp">
+    <p class="fine">Учебная модель: вымышленные устройства и службы, учебные данные и адрес из зарезервированного диапазона для документации.</p>
+    <div class="cells"><span>Центр «Контур»</span><span>Эпизод 3 · Обновление, которое открыло дверь</span><span>Лист 2 из 3</span><span>Формат А3</span><span>Прототип v0.3</span></div>
+  </footer>
+</div></div></div>
+
+<div id="v-player" hidden><div class="poster"><div class="sheet">
+  <header class="ph">
+    <div>
+      <p class="role" style="--lab:var(--dt)"><i class="sq"></i>Роль 03 · Участник игры</p>
+      <h1 class="ttl">Памятка участника</h1>
+      <p class="sub">Эпизод 3: что нового, в каком порядке действовать и как не потерять стабильность.</p>
+    </div>
+    <div class="ctl"><div class="ctl-b"><a class="btn sig" href="#detective">Играть эпизод 3</a><a class="btn" href="#engineer">Стенд лабораторий</a></div></div>
+  </header>
+  <div class="body b-ply">
+    <div class="col">
+      <section class="pnl"><h3>Выберите роль</h3><div class="rcards" id="p-roles"></div><div class="rdet" id="p-rdet"></div></section>
+      <section class="pnl grow"><h3>Правила за минуту</h3>
+        <div class="facts"><span class="fact">10 минут</span><span class="fact">8 часов экспертов</span><span class="fact">3 стабильности</span><span class="fact">сначала копия</span><span class="fact">служба до доступа</span><span class="fact">откат не нужен</span></div>
+        <small>Победа: М-01, М-02, М-03, М-04, М-05. В упрощённом деле достаточно М-01, М-02 и М-05. На половине времени открытая служба стоит часа.</small>
+      </section>
+    </div>
+    <div class="col">
+      <section class="pnl"><h3>Как ходить</h3><div class="steps" id="p-steps"></div><div class="rdet" id="p-sdet"></div>
+        <div class="ctl-b"><button class="btn" id="p-prev">Назад</button><button class="btn" id="p-next">Дальше</button></div></section>
+      <section class="pnl grow"><h3>Проверьте себя</h3><div class="scroll rows" id="p-quiz"></div></section>
+    </div>
+    <div class="col">
+      <section class="pnl"><h3>Моё дело</h3><div class="rows" id="p-prog"></div></section>
+      <section class="pnl"><h3>Сезон: 8 эпизодов</h3><div class="eps" id="p-eps"></div><div class="rdet" id="p-edet"></div></section>
+      <section class="pnl grow"><h3>Режимы мира</h3><div class="chips" id="p-modes"></div><div class="rdet" id="p-mdet"></div></section>
+    </div>
+  </div>
+  <footer class="stamp">
+    <p class="fine">Учебная модель: слабые места показаны обобщёнными карточками. Реальных эксплойтов и инструкций в игре нет.</p>
+    <div class="cells"><span>Центр «Контур»</span><span>Эпизод 3 · Обновление, которое открыло дверь</span><span>Лист 3 из 3</span><span>Формат А3</span><span>Прототип v0.3</span></div>
+  </footer>
+</div></div></div>
+
+</div>
+
+<div class="toast-wrap"><div id="toast" role="status" aria-live="polite"></div></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-camera" viewBox="0 0 48 48"><rect x="5" y="14" width="30" height="20" rx="3"/><circle cx="28" cy="24" r="6"/><path d="M18 34v6M12 40h12"/><circle cx="10" cy="19" r="1.6" style="fill:var(--sig);stroke:none"/></symbol>
+<symbol id="i-pc" viewBox="0 0 48 48"><rect x="6" y="8" width="36" height="25" rx="3"/><path d="M24 33v7M15 40h18M12 15h14M12 21h20"/></symbol>
+<symbol id="i-laptop" viewBox="0 0 48 48"><rect x="10" y="10" width="28" height="20" rx="2"/><path d="M5 35h38l-3 5H8z"/></symbol>
+<symbol id="i-phone" viewBox="0 0 48 48"><rect x="14" y="5" width="20" height="38" rx="4"/><path d="M21 37h6"/></symbol>
+<symbol id="i-cloud" viewBox="0 0 48 48"><path d="M14 35a8 8 0 0 1 1-16 10 10 0 0 1 19 3 7 7 0 0 1 0 13z"/></symbol>
+</defs></svg>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+let toastT = null;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3800); }
+const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+const ST = { unk: 'неизвестно', sus: 'подозрительно', con: 'подтверждено', pro: 'защищён', cln: 'чисто' };
+const LAB = {
+  hw: { n: 'Аппаратная', d: 'железо, метки, записи камер' },
+  sw: { n: 'Программная', d: 'настройки, шифрование, сессии' },
+  dt: { n: 'Данные', d: 'журналы, личные файлы, связи' }
+};
+const HY = [
+  { id: 'H1', c: 'Г-01', t: 'Обновление подменили в пути', d: 'Вместо настоящего патча пришёл чужой.', n: 'У5', lab: 'dt', ok: 0, r: 'Подписи совпадают. Источник обновления подлинный.' },
+  { id: 'H2', c: 'Г-02', t: 'Патч включил отладочную службу', d: 'После обновления на ПК слушает сеть служба отладки.', n: 'У1', lab: 'sw', ok: 1, r: 'Служба отладки включена самим патчем и принимает запросы без пароля.' },
+  { id: 'H3', c: 'Г-03', t: 'Камера тоже обновилась', d: 'Прошивка камеры получила тот же патч.', n: 'У2', lab: 'hw', ok: 0, r: 'Камера на прежней версии. Служба там не включалась.' },
+  { id: 'H4', c: 'Г-04', t: 'Поправка уже существует', d: 'Разработчик мог выпустить исправление.', n: 'У5', lab: 'dt', ok: 1, r: 'Поправка опубликована вчера вечером и ещё нигде не применена.' },
+  { id: 'H5', c: 'Г-05', t: 'Обновлены не все ПК', d: 'Нужно знать, у кого именно служба включена.', n: 'У1', lab: 'hw', ok: 1, r: 'Обновлено 12 рабочих мест из 40. Список составлен.' },
+  { id: 'H6', c: 'Г-06', t: 'Обращения к службе из сети', d: 'К службе уже обращались с чужого адреса.', n: 'У1', lab: 'dt', ok: 1, trust: 1, r: 'Три обращения с адреса 203.0.113.48. Тот же адрес был в делах о камере и о ноутбуке.' },
+  { id: 'H7', c: 'Г-07', t: 'Мобильный клиент затронут', d: 'Телефоны сотрудников используют ту же службу.', n: 'У4', lab: 'sw', ok: 0, r: 'Мобильный клиент работает с другой службой и не затронут.' },
+  { id: 'H8', c: 'Г-08', t: 'Снова скомпрометирован ноутбук', d: 'Ноутбук из прошлого дела мог быть открыт повторно.', n: 'У3', lab: 'dt', ok: 0, r: 'Меры прошлого дела на месте. Ноутбук чистый.' }
+];
+const MS = [
+  { id: 'M1', c: 'М-01', t: 'Резервная копия', needs: null },
+  { id: 'M2', c: 'М-02', t: 'Отключить отладочную службу', needs: 'H2', change: 1 },
+  { id: 'M3', c: 'М-03', t: 'Закрыть внешний доступ', needs: 'H6', change: 1 },
+  { id: 'M4', c: 'М-04', t: 'Применить поправку', needs: 'H4', change: 1 },
+  { id: 'M5', c: 'М-05', t: 'Предупредить пользователей', needs: 'H5' },
+  { id: 'M6', c: 'М-06', t: 'Откатить обновление целиком', needs: null, decoy: 1 }
+];
+const ORD = { M3: ['M2', 'В-02', 'Служба перезапустилась: сначала отключите отладочную службу.'], M4: ['M2', 'В-03', 'Поправка встала поверх работающей службы и не сработала: сначала отключите службу.'] };
+const codeOf = id => HY.find(h => h.id === id).c;
+const NODE = {
+  U1: { n: 'У1', t: 'Рабочие ПК', x: 330, y: 215, i: 'pc' },
+  U2: { n: 'У2', t: 'Камера', x: 550, y: 215, i: 'camera' },
+  U3: { n: 'У3', t: 'Ноутбук прошлого дела', x: 100, y: 215, i: 'laptop' },
+  U4: { n: 'У4', t: 'Телефоны', x: 330, y: 375, i: 'phone' },
+  U5: { n: 'У5', t: 'Сервер обновлений', x: 330, y: 55, i: 'cloud' },
+  U6: { n: 'У6', t: 'Неизвестное устройство', x: 550, y: 55, i: null }
+};
+const LINK = {
+  L01: { a: 'U1', b: 'U5', n: 'Л-01', t: 'получение патча', cx: 330, cy: 135 },
+  L02: { a: 'U1', b: 'U2', n: 'Л-02', t: 'общая сеть', cx: 440, cy: 215 },
+  L03: { a: 'U3', b: 'U1', n: 'Л-03', t: 'общая папка', cx: 215, cy: 215 },
+  L04: { a: 'U4', b: 'U1', n: 'Л-04', t: 'мобильный клиент', cx: 330, cy: 295 },
+  L05: { a: 'U6', b: 'U1', n: 'Л-05', t: 'обращения', cx: 460, cy: 120 }
+};
+const NS = {
+  U1: { h: ['H2', 'H5', 'H6'], con: ['H2', 'H5'], get pro() { return G && G.simple ? ['M1', 'M2', 'M5'] : ['M1', 'M2', 'M4', 'M5']; } },
+  U2: { h: ['H3'], con: [] },
+  U3: { h: ['H8'], con: [] },
+  U4: { h: ['H7'], con: [] },
+  U5: { h: ['H1', 'H4'], con: ['H4'], pro: ['M4'] },
+  U6: { h: ['H6'], con: ['H6'], pro: ['M3'] }
+};
+const LS = {
+  L01: { h: ['H4'], con: ['H4'], pro: ['M4'] },
+  L02: { h: ['H3'], con: [] },
+  L03: { h: ['H8'], con: [] },
+  L04: { h: ['H7'], con: [] },
+  L05: { h: ['H6'], con: ['H6'], pro: ['M3'] }
+};
+let G, iv = null;
+function fresh() {
+  clearInterval(iv); iv = null;
+  G = { hours: 8, trust: 3, sel: null, lab: null, conf: new Set(), rej: new Set(), played: new Set(), streak: 0, simple: false, over: null, why: '', log: [], compl: 0, left: 600, run: false, half: false, half2: false, acts: [] };
+}
+const addLog = (tag, text, tone) => G.log.unshift({ n: G.log.length + 1, tag, text, tone: tone || '' });
+const needAll = a => a.every(k => G.played.has(k));
+const required = () => G.simple ? ['M1', 'M2', 'M5'] : ['M1', 'M2', 'M3', 'M4', 'M5'];
+function stateOf(d) {
+  if (d.pro && needAll(d.pro)) return 'pro';
+  if (d.con.some(x => G.conf.has(x))) return 'con';
+  if (G.sel && d.h.includes(G.sel)) return 'sus';
+  if (d.h.some(x => G.rej.has(x)) ) return 'cln';
+  return 'unk';
+}
+const revealed = () => G.conf.has('H6');
+const dimNode = id => G.simple && id !== 'U1';
+function mapSVG() {
+  const ring = G.sel ? Object.keys(NS).filter(k => NS[k].h.includes(G.sel)) : [];
+  let s = '<svg viewBox="0 0 660 450" role="img" aria-label="Карта улик: рабочие ПК, камера, ноутбук, телефоны, сервер обновлений и скрытое устройство">';
+  Object.entries(LINK).forEach(([id, l]) => {
+    if (id === 'L05' && !revealed()) return;
+    const a = NODE[l.a], b = NODE[l.b];
+    s += `<g class="link st-${stateOf(LS[id])}${G.simple ? ' dim' : ''}"><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/><g transform="translate(${l.cx} ${l.cy})"><rect x="-44" y="-15" width="88" height="30" rx="3"/><text class="lc" y="-2" text-anchor="middle">${l.n}</text><text class="ln" y="10" text-anchor="middle">${l.t}</text></g></g>`;
+  });
+  Object.entries(NODE).forEach(([id, n]) => {
+    if (id === 'U6' && !revealed()) {
+      s += `<g class="node veil" transform="translate(${n.x} ${n.y})"><circle class="disc" r="32"/><text y="9" text-anchor="middle">?</text><text class="ns" y="64" text-anchor="middle">скрыт</text></g>`;
+      return;
+    }
+    const st = stateOf(NS[id]);
+    const ico = n.i ? `<use href="#i-${n.i}" x="-17" y="-17" width="34" height="34" class="ico"/>` : `<text y="9" text-anchor="middle" style="font:600 24px var(--f-d);fill:var(--ink)">?</text>`;
+    s += `<g class="node st-${st}${dimNode(id) ? ' dim' : ''}${ring.includes(id) && id !== 'U6' ? ' ring' : ''}" transform="translate(${n.x} ${n.y})" role="img" aria-label="${n.n} ${n.t}: ${ST[st]}"><circle class="halo" r="41"/><circle class="disc" r="32"/>${ico}<text class="nl" y="52" text-anchor="middle">${n.n} ${n.t}</text><text class="ns" y="66" text-anchor="middle">${ST[st]}</text></g>`;
+  });
+  return s + '</svg>';
+}
+function protocol() {
+  const res = G.over === 'win' ? (G.simple ? 'закрыто с упрощением' : 'закрыто') : 'не закрыто';
+  return ['Сцена 3 «Обновление, которое открыло дверь»', 'Итог: ' + res, 'Часов осталось: ' + G.hours + ' из 8', 'Стабильность: ' + G.trust + ' из 3', 'Осложнений: ' + G.compl,
+    'Упрощение: ' + (G.simple ? 'да' : 'нет'), 'Подтверждено: ' + ([...G.conf].map(codeOf).join(', ') || 'ничего'),
+    'Порядок действий: ' + (G.acts.join(' → ') || 'нет')].join('\n');
+}
+function stars() { return G.simple ? 1 : (G.trust === 3 && G.hours >= 2 ? 3 : 2); }
+function bannerHTML() {
+  if (G.over === 'win') {
+    const n = stars();
+    return `<div class="banner win"><b>${G.simple ? 'Служба отключена, пользователи предупреждены. Прохождение с упрощением.' : 'Служба отключена, поправка применена, доступ закрыт, пользователи предупреждены. Хорошая работа.'}</b><span class="stars" aria-label="${n} из 3 звёзд">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span><br>Но пока вы работали, у одного из сотрудников заблокировался телефон, а журнал снова показал знакомый адрес: об этом следующее дело.<br><textarea class="prot-t" id="d-prot" readonly aria-label="Протокол прогона">${protocol()}</textarea><br><button class="btn" data-act="copy">Копировать протокол</button> <button class="btn" data-act="reset">Сыграть заново</button></div>`;
+  }
+  if (G.over === 'lose') {
+    return `<div class="banner lose"><b>${G.why}</b>Подтверждено: ${[...G.conf].map(codeOf).join(', ') || 'ничего'}.<br><textarea class="prot-t" id="d-prot" readonly aria-label="Протокол прогона">${protocol()}</textarea><br><button class="btn" data-act="copy">Копировать протокол</button> <button class="btn" data-act="reset">Попробовать снова</button></div>`;
+  }
+  if (G.simple) return `<div class="banner warn"><b>Центр сузил задачу до рабочих ПК</b>«Сначала спасите данные, потом чините.» Сыграйте М-01, затем М-02 и М-05.</div>`;
+  if (G.sel && !G.lab) return `<div class="banner"><b>${codeOf(G.sel)} выбрана</b>Назовите лабораторию, которая её проверит.</div>`;
+  if (G.sel && G.lab) return `<div class="banner"><b>Готово к проверке</b>Нажмите «Проверить». Часы спишутся сразу.</div>`;
+  return `<div class="banner"><b>Выберите гипотезу</b>Пока копии нет, трогать рабочую систему опасно. Поспешите, но не наломайте дров.</div>`;
+}
+function render() {
+  if (typeof E !== "undefined" && E) renderProgress();
+  const pips = $('#d-pips'); pips.setAttribute('aria-label', 'Часы экспертов: ' + G.hours + ' из 8');
+  pips.innerHTML = Array.from({ length: 8 }, (_, i) => `<i class="pip${i < G.hours ? ' on' : ''}"></i>`).join('') + `<span class="pn">${G.hours} из 8</span>`;
+  const tr = $('#d-trust'); tr.setAttribute('aria-label', 'Стабильность: ' + G.trust + ' из 3');
+  tr.innerHTML = Array.from({ length: 3 }, (_, i) => `<i class="pip tr${i < G.trust ? ' on' : ''}"></i>`).join('') + `<span class="pn">${G.trust} из 3</span>`;
+  $('#d-time').textContent = fmt(G.left);
+  const sb = $('#d-start'); sb.textContent = G.run ? 'Пауза' : (G.left < 600 ? 'Продолжить' : 'Запустить таймер'); sb.disabled = !!G.over;
+  $('#d-map').innerHTML = mapSVG();
+  $('#d-hyp').innerHTML = HY.map(h => {
+    const conf = G.conf.has(h.id), rej = G.rej.has(h.id), sel = G.sel === h.id;
+    const dis = G.over || conf || rej || (G.simple && !['H2', 'H5'].includes(h.id));
+    const tag = conf ? '<span class="tg con">подтверждена</span>' : rej ? '<span class="tg cln">не подтверждена</span>' : sel ? '<span class="tg sus">выбрана</span>' : '';
+    return `<button class="hrow${sel ? ' sel' : ''}${conf ? ' conf' : ''}${rej ? ' rej' : ''}" data-h="${h.id}" aria-pressed="${sel}"${dis ? ' disabled' : ''}><span class="hc">${h.c}<em>${h.n}</em></span><span class="ht"><b>${h.t}</b><small>${h.d}</small></span><span>${tag}</span></button>`;
+  }).join('');
+  $('#d-labs').innerHTML = Object.entries(LAB).map(([k, l]) => `<button class="lab${G.lab === k ? ' on' : ''}" data-lab="${k}" style="--lab:var(--${k})" aria-pressed="${G.lab === k}"${G.over ? ' disabled' : ''}><b>${l.n}</b><small>${l.d}</small></button>`).join('');
+  $('#d-sum').textContent = G.sel ? `${codeOf(G.sel)} · ${HY.find(h => h.id === G.sel).t}${G.lab ? ' → ' + LAB[G.lab].n : ''}` : 'Гипотеза не выбрана.';
+  $('#d-check').disabled = !(G.sel && G.lab) || !!G.over || G.hours < 1;
+  $('#d-k').innerHTML = MS.map(m => {
+    const played = G.played.has(m.id);
+    const out = G.simple && (m.id === 'M3' || m.id === 'M4' || m.id === 'M6');
+    const lock = (m.needs && !G.conf.has(m.needs)) || out;
+    const st = played ? 'поставлено' : out ? 'вне зоны' : lock ? 'ждёт ' + codeOf(m.needs) : (m.decoy ? 'проверить' : 'сыграть');
+    return `<button class="kc${played ? ' done' : ''}" data-m="${m.id}"${(lock || played || G.over) ? ' disabled' : ''}><span class="kcode">${m.c}</span><b>${m.t}</b><em>${st}</em></button>`;
+  }).join('');
+  $('#d-log').innerHTML = G.log.length ? G.log.map(l => `<li class="${l.tone}"><span class="n">№${l.n}</span><b>${l.tag}.</b> ${l.text}</li>`).join('') : '<li>Дело открыто. Журнал пуст.</li>';
+  $('#d-banner').innerHTML = bannerHTML();
+}
+function simplify() {
+  G.simple = true; G.sel = null; G.lab = null;
+  addLog('Центр', 'Задача сужена до рабочих ПК. «Сначала спасите данные, потом чините.» Новое задание: М-01, М-02, М-05.', 'warn');
+  toast('Центр сужает задачу. Это тоже прохождение.');
+}
+function finish(kind, why) {
+  G.over = kind; G.why = why || ''; G.run = false; clearInterval(iv); iv = null;
+  toast(kind === 'win' ? 'Дело закрыто.' : 'Дело не закрыто.');
+}
+function check() { if (!G.over && (G.hours <= 0)) finish('lose', 'Часы закончились. Давайте посмотрим, что мы узнали.'); else if (!G.over && G.trust <= 0) finish('lose', 'Стабильность потеряна: система остановилась.'); }
+function runCheck() {
+  if (G.over || !G.sel || !G.lab || G.hours < 1) return;
+  const h = HY.find(x => x.id === G.sel), own = G.lab === h.lab, cost = Math.min(own ? 1 : 2, G.hours);
+  G.hours -= cost; let miss = false; G.acts.push(h.c);
+  if (!own) { addLog(LAB[G.lab].n, `Лаборатория ничего не нашла по ${h.c}. Потрачено ${cost} ч.`, 'miss'); miss = true; }
+  else {
+    if (h.trust && !G.played.has('M1')) { G.trust--; addLog('Стабильность', `Боевая система проверена без копии: сбой службы, минус 1 стабильность.`, 'warn'); }
+    if (h.ok) {
+      G.conf.add(h.id); G.streak = 0; addLog(LAB[h.lab].n, `${h.c} подтверждена. ${h.r}`, 'ok');
+      if (h.id === 'H6') addLog('Центр', 'Открыто неизвестное устройство У6. Появилась связь Л-05.', 'info');
+    } else { G.rej.add(h.id); addLog(LAB[h.lab].n, `${h.c} не подтверждена. ${h.r}`, 'miss'); miss = true; }
+  }
+  G.sel = null; G.lab = null;
+  if (miss) { G.streak++; if (G.streak >= 2 && !G.simple) simplify(); }
+  check(); render();
+}
+function playM(id) {
+  if (G.over || G.played.has(id)) return;
+  const m = MS.find(x => x.id === id);
+  if (G.simple && (id === 'M3' || id === 'M4' || id === 'M6')) return;
+  if (m.needs && !G.conf.has(m.needs)) return;
+  const bad = (code, text, trust) => {
+    G.hours = Math.max(0, G.hours - 1); if (trust) G.trust--; G.compl++; G.acts.push(m.c + '(!)');
+    addLog('Осложнение ' + code, text + ' Минус 1 ч' + (trust ? ' и 1 стабильность' : '') + '. Мера вернулась в руку.', 'warn');
+    toast('Осложнение ' + code + '.'); check(); render();
+  };
+  if (m.change && !G.played.has('M1')) return bad('В-01', 'Система изменена без резервной копии: служба упала, данные не вернуть.', true);
+  if (ORD[id] && !G.played.has(ORD[id][0])) return bad(ORD[id][1], ORD[id][2], false);
+  G.played.add(id); G.acts.push(m.c);
+  if (m.decoy) { G.hours = Math.max(0, G.hours - 1); addLog('Откат', 'Откат вернул старую дыру, которую патч уже закрыл. Потерян 1 ч.', 'miss'); }
+  else addLog('Мера', `${m.c} ${m.t}: поставлено.`, 'ok');
+  if (needAll(required())) finish('win'); else check();
+  render();
+}
+function tick() {
+  if (!G.run || G.over) return;
+  G.left--;
+  if (!G.half && G.left <= 300) { G.half = true; addLog('Таймер', 'Прошла половина времени. Осталось 5 минут.', 'info'); toast('Прошла половина времени. Осталось 5 минут.'); }
+  if (!G.half2 && G.left <= 300 && !G.played.has('M2')) { G.half2 = true; G.hours = Math.max(0, G.hours - 1); addLog('Окно атаки', 'Из сети пришёл запрос к открытой службе. Минус 1 ч.', 'warn'); toast('Окно атаки: служба всё ещё открыта.'); check(); }
+  if (!G.simple && 600 - G.left >= 360 && G.conf.size === 0) simplify();
+  if (G.left <= 0) finish('lose', 'Время вышло. Давайте посмотрим, что мы узнали.');
+  render();
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-h],[data-lab],[data-m],[data-act]'); if (!t) return;
+  if (t.dataset.h) { if (!G.over) { G.sel = G.sel === t.dataset.h ? null : t.dataset.h; render(); } }
+  else if (t.dataset.lab) { G.lab = G.lab === t.dataset.lab ? null : t.dataset.lab; render(); }
+  else if (t.dataset.m) playM(t.dataset.m);
+  else if (t.dataset.act === 'reset') { fresh(); render(); }
+  else if (t.dataset.act === 'copy') {
+    const ta = $('#d-prot'); if (!ta) return;
+    const sel = () => { ta.focus(); ta.select(); toast('Текст выделен. Скопируйте его вручную.'); };
+    try { navigator.clipboard.writeText(ta.value).then(() => toast('Протокол скопирован.'), sel); } catch (err) { sel(); }
+  }
+});
+$('#d-check').addEventListener('click', runCheck);
+$('#d-reset').addEventListener('click', () => { fresh(); render(); });
+$('#d-start').addEventListener('click', () => { if (G.over) return; G.run = !G.run; clearInterval(iv); if (G.run) iv = setInterval(tick, 1000); render(); });
+
+/* ---------- вкладки ---------- */
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const ROUTES = ['detective', 'engineer', 'player'];
+function route(name) {
+  const h = location.hash.slice(1), r = ROUTES.includes(name) ? name : (ROUTES.includes(h) ? h : 'detective');
+  ROUTES.forEach(x => { $('#v-' + x).hidden = x !== r; });
+  $$('.tab').forEach(a => { if (a.dataset.r === r) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+}
+addEventListener('hashchange', () => route());
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#"]'); if (!a) return;
+  const n = a.getAttribute('href').slice(1); if (!ROUTES.includes(n)) return;
+  e.preventDefault(); route(n);
+  try { if (location.hash.slice(1) !== n) location.hash = n; } catch (err) { /* адрес можно не менять */ }
+});
+
+/* ---------- Инженер лаборатории ---------- */
+const HWP = [
+  { n: 1, t: 'Рабочие ПК: версия', r: 'Версия новая у 12 ПК из 40. Остальные на прежней.', x: 150, y: 90 },
+  { n: 2, t: 'Камера: прошивка', r: 'Прошивка прежняя, обновление не получала.', x: 270, y: 90 },
+  { n: 3, t: 'Телефоны: клиент', r: 'Мобильный клиент не использует затронутую службу.', x: 150, y: 140 },
+  { n: 4, t: 'Ноутбук прошлого дела', r: 'Меры прошлого дела на месте, сессии закрыты.', x: 270, y: 140 },
+  { n: 5, t: 'Сетевой шлюз', r: 'Шлюз пропускает внешние запросы к порту службы.', x: 210, y: 40 },
+  { n: 6, t: 'Сервер обновлений', r: 'Патч подписан, источник подлинный.', x: 210, y: 160 }
+];
+const SWR = [
+  { k: 'bk', t: 'Резервная копия', off: 'нет', on: 'сделана', w: 15 },
+  { k: 'svc', t: 'Отладочная служба', off: 'включена', on: 'отключена', w: 35 },
+  { k: 'net', t: 'Внешний доступ', off: 'открыт', on: 'закрыт', w: 25 },
+  { k: 'fix', t: 'Поправка к патчу', off: 'не применена', on: 'применена', w: 25 }
+];
+const UNK = 'Неизвестное · 203.0.113.48';
+const LOGR = [
+  { t: '01:12', a: 'сеть', d: UNK, x: 'запрос к службе', u: 1 },
+  { t: '01:14', a: 'сеть', d: UNK, x: 'запрос к службе', u: 1 },
+  { t: '01:19', a: 'сеть', d: UNK, x: 'запрос к службе', u: 1 },
+  { t: '08:05', a: 'отдел', d: 'ПК бухгалтера', x: 'вход' },
+  { t: '09:30', a: 'отдел', d: 'ПК склада', x: 'синхронизация' },
+  { t: '11:00', a: 'отдел', d: 'ПК продаж', x: 'вход' },
+  { t: '13:40', a: 'отдел', d: 'ПК бухгалтера', x: 'синхронизация' },
+  { t: '15:20', a: 'отдел', d: 'ПК склада', x: 'вход' },
+  { t: '17:55', a: 'отдел', d: 'ПК продаж', x: 'выход' },
+  { t: '20:10', a: 'система', d: 'Сервер обновлений', x: 'установка патча' }
+];
+const CLS = [
+  { t: 'Версия патча и дата установки', ans: 'in' },
+  { t: 'Список затронутых рабочих мест', ans: 'in' },
+  { t: 'Что сделать пользователям: перезагрузить ПК', ans: 'in' },
+  { t: 'Полный журнал со всеми адресами сотрудников', ans: 'no' },
+  { t: 'Догадки о том, кто стучался', ans: 'no' }
+];
+let E;
+function freshE() {
+  E = { hw: { seen: new Set(), msg: '', done: false }, sw: { v: { bk: 0, svc: 0, net: 0, fix: 0 }, integ: 100, msg: '', done: false },
+    dt: { marked: new Set(), cls: {}, okM: false, okC: false, msg: '', done: false }, log: [] };
+}
+const eLog = t => { E.log.unshift(t); E.log = E.log.slice(0, 8); };
+function hwSVG() {
+  let s = '<svg viewBox="0 0 320 180" role="img" aria-label="Схема сети с шестью точками осмотра">';
+  s += '<rect class="part" x="120" y="70" width="60" height="38" rx="4"/><rect class="part" x="240" y="70" width="60" height="38" rx="4"/><rect class="part" x="120" y="120" width="60" height="38" rx="4"/><rect class="part" x="240" y="120" width="60" height="38" rx="4"/><rect class="part" x="180" y="22" width="60" height="32" rx="4"/><rect class="part" x="180" y="146" width="60" height="30" rx="4"/>';
+  HWP.forEach(p => {
+    s += `<g class="spot${E.hw.seen.has(p.n) ? ' seen' : ''}" data-act="spot" data-n="${p.n}" tabindex="0" role="button" aria-label="Точка ${p.n}: ${p.t}"><circle cx="${p.x}" cy="${p.y}" r="11"/><text x="${p.x}" y="${p.y + 4}">${p.n}</text></g>`;
+  });
+  return s + '</svg>';
+}
+function chartSVG() {
+  const W = 320, H = 130, L = 26, R = 8, T = 8, B = 22, pw = W - L - R, ph = H - T - B, max = 4;
+  const kn = Array(24).fill(0), un = Array(24).fill(0);
+  LOGR.forEach(r => { const h = +r.t.slice(0, 2); if (r.u) un[h]++; else kn[h]++; });
+  const Y = v => T + ph - v / max * ph, bw = pw / 24 * .68;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Запросы к службе по часам: в час ночи три запроса с неизвестного адреса">`;
+  for (let v = 0; v <= max; v++) s += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" style="stroke:var(--rule);stroke-width:1"/><text x="${L - 5}" y="${Y(v) + 3}" text-anchor="end" style="font:500 8px var(--f-m);fill:var(--ink2)">${v}</text>`;
+  for (let h = 0; h < 24; h++) {
+    const x = L + h * pw / 24 + (pw / 24 - bw) / 2;
+    if (kn[h]) s += `<rect x="${x}" y="${Y(kn[h])}" width="${bw}" height="${T + ph - Y(kn[h])}" style="fill:var(--ink2);opacity:.6"/>`;
+    if (un[h]) s += `<rect x="${x}" y="${Y(kn[h] + un[h])}" width="${bw}" height="${Y(kn[h]) - Y(kn[h] + un[h])}" style="fill:var(--con)"/>`;
+  }
+  [0, 6, 12, 18, 24].forEach(h => { s += `<text x="${L + h * pw / 24}" y="${H - 8}" text-anchor="middle" style="font:500 8px var(--f-m);fill:var(--ink2)">${String(h).padStart(2, '0')}</text>`; });
+  return s + '</svg>';
+}
+const meter = (label, val, col) => `<div><span class="lbl">${label}: ${val} из 100</span><div class="meter" style="--c:var(--${col})" role="img" aria-label="${label} ${val} из 100"><i style="width:${val}%"></i></div><div class="ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div></div>`;
+function renderE() {
+  const seen = E.hw.seen, all = seen.size === HWP.length;
+  $('#e-hw').innerHTML = `<div class="svgbox">${hwSVG()}</div><small>Схема сети. Нажимайте точки на схеме или строки ниже.</small>` +
+    HWP.map(p => `<button class="rrow${seen.has(p.n) ? ' seen' : ''}" data-act="spot" data-n="${p.n}"><span class="num">${p.n}</span><span><b>${p.t}</b><small>${seen.has(p.n) ? p.r : 'не осмотрено'}</small></span></button>`).join('') +
+    (all && !E.hw.done ? '<div class="chips"><button class="chip" data-act="hwv" data-v="1">Вывод: обновлено 12 ПК, остальное не затронуто</button><button class="chip" data-act="hwv" data-v="0">Вывод: обновлены все устройства</button></div>' : '') +
+    (E.hw.msg ? `<p class="msg${E.hw.done ? ' ok' : ''}">${E.hw.msg}</p>` : '');
+  const v = E.sw.v; let risk = 0; SWR.forEach(x => { if (!v[x.k]) risk += x.w; });
+  const rc = risk > 60 ? 'con' : risk > 30 ? 'sus' : 'pro', ic = E.sw.integ >= 70 ? 'pro' : E.sw.integ >= 40 ? 'sus' : 'con';
+  $('#e-sw').innerHTML = SWR.map(x => { const on = v[x.k]; return `<button class="swrow" data-act="sw" data-k="${x.k}" aria-pressed="${!!on}"><b>${x.t}</b><span class="seg2${on ? ' on' : ''}"><span class="${on ? '' : 'act'}">${x.off}</span><span class="${on ? 'act' : ''}">${x.on}</span></span></button>`; }).join('') +
+    meter('Условный индекс риска', risk, rc) + meter('Стабильность системы', E.sw.integ, ic) +
+    '<div class="chips"><button class="chip" data-act="swreset">Сбросить стенд</button></div>' +
+    (E.sw.msg ? `<p class="msg${E.sw.done ? ' ok' : ''}">${E.sw.msg}</p>` : '');
+  $('#e-dt').innerHTML = `<span class="lbl">Запросы к службе по часам (учебные данные)</span><div class="svgbox">${chartSVG()}</div>` +
+    '<small>Отметьте строки, которые не похожи на обычную работу отдела.</small>' +
+    `<div class="ltable"><div class="lrow h"><span>Время</span><span>Учётка</span><span>Устройство</span><span>Действие</span></div>` +
+    LOGR.map((r, i) => `<button class="lrow" data-act="mark" data-i="${i}" aria-pressed="${E.dt.marked.has(i)}"><span>${r.t}</span><span>${r.a}</span><span>${r.d}</span><span>${r.x}</span></button>`).join('') + '</div>' +
+    '<span class="lbl">Что включить в уведомление пользователям</span>' +
+    CLS.map((c, i) => `<div class="swrow"><b>${c.t}</b><span class="chips"><button class="chip" data-act="cls" data-i="${i}" data-v="in" aria-pressed="${E.dt.cls[i] === 'in'}">В уведомление</button><button class="chip" data-act="cls" data-i="${i}" data-v="no" aria-pressed="${E.dt.cls[i] === 'no'}">Не включать</button></span></div>`).join('') +
+    '<div class="chips"><button class="chip" data-act="dtcheck">Проверить</button></div>' +
+    (E.dt.msg ? `<p class="msg${E.dt.done ? ' ok' : ''}">${E.dt.msg}</p>` : '');
+  const n = ['hw', 'sw', 'dt'].filter(k => E[k].done).length;
+  $('#e-count').textContent = n + ' из 3';
+  $('#e-log').innerHTML = E.log.length ? E.log.map((t, i) => `<li><span class="n">${E.log.length - i}</span>${t}</li>`).join('') : '<li>Опытов ещё нет.</li>';
+  const rowO = (k, name, txt) => `<div class="done-row"><span class="tg ${E[k].done ? 'pro' : 'cln'}">${E[k].done ? 'готово' : 'ожидается'}</span><span><b>${name}.</b> ${E[k].done ? txt : 'вывод ещё не сделан.'}</span></div>`;
+  $('#e-out').innerHTML = rowO('hw', 'Аппаратная', 'обновлены 12 ПК из 40, камера и телефоны не затронуты.') +
+    rowO('sw', 'Программная', 'копия сделана, служба отключена, доступ закрыт, поправка применена. Стабильность ' + E.sw.integ + '%.') +
+    rowO('dt', 'Данные', 'три ночных запроса с адреса 203.0.113.48, в уведомление попали только нужные сведения.') +
+    (n === 3 ? '<p class="msg ok">Находки готовы. <a href="#detective">Передать сыщику</a></p>' : '');
+  renderProgress();
+}
+const engEl = $('#v-engineer');
+engEl.addEventListener('click', e => {
+  const t = e.target.closest('[data-act]'); if (!t) return; const a = t.dataset.act;
+  if (a === 'spot') { const n = +t.dataset.n; if (E.hw.seen.has(n)) E.hw.seen.delete(n); else { E.hw.seen.add(n); eLog('Аппаратная: осмотрена точка ' + n + ' (' + HWP[n - 1].t + ').'); } E.hw.msg = ''; }
+  else if (a === 'hwv') { if (t.dataset.v === '1') { E.hw.done = true; E.hw.msg = 'Верно. Обновились 12 рабочих мест, шлюз пропускает внешние запросы, остальное не затронуто.'; eLog('Аппаратная: вывод сделан, затронуты 12 ПК.'); } else E.hw.msg = 'Перепроверьте показания. Что в них говорит о вскрытии?'; }
+  else if (a === 'sw') {
+    const v = E.sw.v, k = t.dataset.k; E.sw.msg = '';
+    if (v[k]) { v[k] = 0; eLog('Программная: «' + SWR.find(x => x.k === k).t + '» возвращено.'); }
+    else if (k !== 'bk' && !v.bk) { E.sw.integ = Math.max(0, E.sw.integ - 30); E.sw.msg = 'Осложнение В-01: изменение без копии, служба упала. Стабильность минус 30. Мера не применена.'; eLog('Программная: попытка изменить систему без копии.'); }
+    else if ((k === 'net' || k === 'fix') && !v.svc) { E.sw.msg = 'Осложнение В-02: служба перезапустилась. Сначала отключите отладочную службу.'; eLog('Программная: доступ или поправка раньше отключения службы.'); }
+    else { v[k] = 1; eLog('Программная: «' + SWR.find(x => x.k === k).t + '» включено.'); }
+    E.sw.done = !!(v.bk && v.svc && v.net && v.fix && E.sw.integ >= 70);
+    if (E.sw.done) E.sw.msg = 'Все меры стоят в верном порядке. Стабильность ' + E.sw.integ + '%.';
+    else if (v.bk && v.svc && v.net && v.fix) E.sw.msg = 'Меры стоят, но стабильность упала. Сбросьте стенд и пройдите в верном порядке.';
+  }
+  else if (a === 'swreset') { E.sw = { v: { bk: 0, svc: 0, net: 0, fix: 0 }, integ: 100, msg: '', done: false }; eLog('Программная: стенд сброшен.'); }
+  else if (a === 'mark') { const i = +t.dataset.i; if (E.dt.marked.has(i)) E.dt.marked.delete(i); else E.dt.marked.add(i); E.dt.msg = ''; }
+  else if (a === 'cls') { E.dt.cls[+t.dataset.i] = t.dataset.v; E.dt.msg = ''; }
+  else if (a === 'dtcheck') {
+    const exp = LOGR.map((r, i) => r.u ? i : -1).filter(i => i >= 0), got = [...E.dt.marked];
+    const hit = got.filter(i => exp.includes(i)).length, extra = got.length - hit;
+    E.dt.okM = hit === exp.length && extra === 0;
+    const cOk = CLS.filter((c, i) => E.dt.cls[i] === c.ans).length; E.dt.okC = cOk === CLS.length;
+    E.dt.msg = `Строки: найдено ${hit} из ${exp.length}` + (extra ? `, лишних ${extra}` : '') + `. Уведомление: верно ${cOk} из ${CLS.length}.`;
+    if (E.dt.okM && E.dt.okC) E.dt.msg = 'Готово: ночные запросы найдены, состав уведомления определён верно.';
+    eLog('Данные: проверка, строки ' + hit + ' из ' + exp.length + ', уведомление ' + cOk + ' из ' + CLS.length + '.');
+    E.dt.done = E.dt.okM && E.dt.okC;
+  }
+  renderE();
+});
+engEl.addEventListener('keydown', e => { const n = e.target.closest('.spot'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); n.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
+$('#e-reset').addEventListener('click', () => { freshE(); renderE(); });
+
+/* ---------- Участник игры ---------- */
+const ROLES = [
+  { k: 'sy', n: 'Сыщик', s: 'выдвигает гипотезы', a: 'Решает, какую гипотезу проверять первой, пока идёт таймер.', tip: 'Начните со службы на ПК: от неё зависят остальные меры.' },
+  { k: 'rz', n: 'Разработчик защиты', s: 'ставит меры', a: 'Ставит меры и следит за порядком: копия, служба, доступ, поправка.', tip: 'Копию делайте до любого изменения. Откат всего обновления не нужен.' },
+  { k: 'kt', n: 'Конструктор угроз', s: 'работает в песочнице', a: 'Готовит для соперников абстрактные «патчи с побочным эффектом» из заготовок. Только вымышленные устройства.', tip: 'Хороший побочный эффект учит проверять результат, а не обучает обходу.' },
+  { k: 'rc', n: 'Руководитель центра', s: 'следит за ресурсами', a: 'Следит за таймером и стабильностью, вызывает упрощение.', tip: 'В гонке дорожает каждая ошибка. Назовите время вслух на каждой минуте.' }
+];
+const STEPS = [
+  ['Дело', 'Обновление поставили на 12 рабочих местах. Старую дыру оно закрыло, но что-то слушает сеть.'],
+  ['Копия', 'Делаете резервную копию. Пока её нет, менять систему нельзя, а проверка живой системы стоит стабильности.'],
+  ['Гипотеза', 'Выбираете карточку и лабораторию. Своя стоит 1 час, чужая 2 часа.'],
+  ['Служба', 'Подтверждаете отладочную службу и отключаете её. Это нужно сделать до закрытия доступа и поправки.'],
+  ['Доступ и поправка', 'После отключения службы закрываете внешний доступ и применяете поправку.'],
+  ['Проверка', 'Пользователи предупреждены, служба закрыта, копия сохранена. Звёзды зависят от стабильности и часов.']
+];
+const QZ = [
+  { q: 'Вы хотите отключить службу, но копии ещё нет. Что делаете?', o: ['Отключаю сразу, идёт таймер', 'Сначала делаю копию', 'Откатываю всё обновление'], r: 1, f: 'Изменение без копии: служба падает, минус час и стабильность.' },
+  { q: 'Служба ещё включена. Вы закрываете внешний доступ. Что будет?', o: ['Ничего, доступ закрыт', 'Служба перезапустится: минус час', 'Стабильность вырастет'], r: 1, f: 'Сначала нужно отключить службу, потом закрывать доступ.' },
+  { q: 'Кто-то предлагает откатить всё обновление «чтобы наверняка». Что это даст?', o: ['Вернёт старую дыру', 'Закроет все дыры', 'Сохранит время'], r: 0, f: 'Старую дыру патч уже закрыл. Откат её вернёт и потеряет час.' }
+];
+const EPS = [
+  ['Камера, которая видела лишнее', 'Камера на проходной пишет архив в облако с заводскими настройками. Нужно понять, кто смотрел запись.', 'готов'],
+  ['Ноутбук без владельца', 'Ноутбук нашли в такси. Нужно вернуть владельцу и сохранить улики.', 'готов'],
+  ['Обновление, которое открыло дверь', 'Патч закрыл одну дыру и создал другую. Гонка с таймером.', 'готов'],
+  ['Телефон сотрудника', 'Телефон заблокирован, нужен законный доступ. Три лаборатории спорят о пути.', 'скоро'],
+  ['ПК бухгалтера', 'Утечка через безобидное приложение синхронизации. Цепочку восстанавливают по журналам.', 'скоро'],
+  ['Двойник приложения', 'Поддельная версия популярного приложения. Откуда она берёт права?', 'скоро'],
+  ['Склеенные следы', 'Три устройства чистые по отдельности. Вместе данные начинают что-то значить.', 'скоро'],
+  ['Свой среди своих', 'Утечка идёт изнутри центра. Игрок проверяет собственные лаборатории.', 'скоро']
+];
+const MODES = [
+  ['Дело', 'Кооператив на 1–4 игроков. Сценарий из эпизодов, лаборатории работают параллельно.'],
+  ['Разбор', 'Соло. Короткие обучающие дела для новичков с обязательной веткой упрощения.'],
+  ['Дуэль', 'Две команды. Конструкторы собирают абстрактную схему слабых мест, защитники находят и закрывают их.'],
+  ['Сезон центра', 'Асинхронное соревнование центров по рейтингу защищённости.']
+];
+const P = { role: 'sy', step: 0, ep: 2, mode: 0, qa: {} };
+function renderProgress() {
+  const el = $('#p-prog'); if (!el) return;
+  const d = !G.over ? 'не закрыто' : G.over === 'lose' ? 'дело не закрыто' : (G.simple ? 'закрыто с упрощением' : 'закрыто') + ', ' + stars() + ' из 3';
+  const labs = ['hw', 'sw', 'dt'].filter(k => E[k].done).length;
+  const score = Object.keys(P.qa).filter(i => P.qa[i] === QZ[i].r).length;
+  el.innerHTML = `<div class="done-row"><span class="tg ${G.over === 'win' ? 'pro' : 'cln'}">Сыщик</span><span>${d}. Стабильность ${G.trust} из 3, часов ${G.hours} из 8</span></div><div class="done-row"><span class="tg ${labs === 3 ? 'pro' : 'cln'}">Инженер</span><span>лабораторий готово: ${labs} из 3</span></div><div class="done-row"><span class="tg ${Object.keys(P.qa).length === QZ.length ? 'pro' : 'cln'}">Проверка</span><span>верных ответов: ${score} из ${QZ.length}</span></div>`;
+}
+function renderP() {
+  $('#p-roles').innerHTML = ROLES.map(r => `<button class="rc" data-pr="${r.k}" aria-pressed="${P.role === r.k}"><b>${r.n}</b><small>${r.s}</small></button>`).join('');
+  const ro = ROLES.find(x => x.k === P.role);
+  $('#p-rdet').innerHTML = `<p><b>${ro.n}.</b> ${ro.a}</p><p><small>Совет: ${ro.tip}</small></p>`;
+  $('#p-steps').innerHTML = STEPS.map((s, i) => `<button class="stp" data-ps="${i}"${i === P.step ? ' aria-current="step"' : ''}>${i + 1}. ${s[0]}</button>`).join('');
+  $('#p-sdet').innerHTML = `<p><b>${STEPS[P.step][0]}.</b> ${STEPS[P.step][1]}</p>`;
+  $('#p-quiz').innerHTML = QZ.map((q, qi) => {
+    const a = P.qa[qi], done = a !== undefined;
+    return `<div class="q"><p>${qi + 1}. ${q.q}</p>${q.o.map((o, oi) => `<button class="opt${done && oi === q.r ? ' right' : ''}${done && a === oi && oi !== q.r ? ' wrong' : ''}" data-pq="${qi}" data-po="${oi}"${done ? ' disabled' : ''}>${o}</button>`).join('')}${done ? `<small>${a === q.r ? 'Верно. ' : 'Не совсем. '}${q.f}</small>` : ''}</div>`;
+  }).join('') + (Object.keys(P.qa).length ? '<button class="chip" data-pq-reset="1">Пройти заново</button>' : '');
+  $('#p-eps').innerHTML = EPS.map((e, i) => `<button class="ep${e[2] === 'скоро' ? ' soon' : ''}" data-pe="${i}" aria-current="${i === P.ep}" aria-label="Эпизод ${i + 1}">${i + 1}</button>`).join('');
+  const ep = EPS[P.ep];
+  $('#p-edet').innerHTML = `<p><b>${ep[0]}</b> <span class="tg ${ep[2] === 'готов' ? 'pro' : 'cln'}">${ep[2]}</span></p><p><small>${ep[1]}</small></p>`;
+  $('#p-modes').innerHTML = MODES.map((m, i) => `<button class="chip" data-pm="${i}" aria-pressed="${i === P.mode}">${m[0]}</button>`).join('');
+  $('#p-mdet').innerHTML = `<p>${MODES[P.mode][1]}</p><p><small>На столе сейчас играется режим «Дело».</small></p>`;
+  renderProgress();
+}
+$('#v-player').addEventListener('click', e => {
+  const t = e.target.closest('[data-pr],[data-ps],[data-pq],[data-pq-reset],[data-pe],[data-pm]'); if (!t) return;
+  if (t.dataset.pr) P.role = t.dataset.pr;
+  else if (t.dataset.ps) P.step = +t.dataset.ps;
+  else if (t.dataset.pq !== undefined) P.qa[t.dataset.pq] = +t.dataset.po;
+  else if (t.dataset.pqReset) P.qa = {};
+  else if (t.dataset.pe) P.ep = +t.dataset.pe;
+  else if (t.dataset.pm) P.mode = +t.dataset.pm;
+  renderP();
+});
+$('#p-prev').addEventListener('click', () => { P.step = (P.step + STEPS.length - 1) % STEPS.length; renderP(); });
+$('#p-next').addEventListener('click', () => { P.step = (P.step + 1) % STEPS.length; renderP(); });
+
+/* ---------- запуск ---------- */
+freshE(); fresh(); renderP(); renderE(); render();
+route();
+})();
+</script>
+
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>window.KONTUR_SCENE=3;</script>
+<script src="tg.js"></script>
+</body>
+</html>

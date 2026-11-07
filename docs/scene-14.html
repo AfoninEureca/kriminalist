@@ -1,0 +1,1033 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Подброшенные улики</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=PT+Serif:wght@700&family=Rubik:wght@400;500;600;700&display=swap">
+<style>
+/* Concept: «стол следователя» — бумажные карточки досье, красная нить связей, док-панель ролей снизу. */
+:root{
+  --bg:#efe8dc;--card:#fbf7f0;--card2:#f3ece0;--ink:#1f1a14;--ink2:#6b5f50;--rule:#d9cdb8;
+  --acc:#c2410c;--acc2:#0f766e;--on-acc:#ffffff;--thread:#b91c1c;
+  --unk:#8a7f70;--sus:#b7791f;--con:#b91c1c;--pro:#15803d;--cln:#7c8a7a;
+  --hw:#0f766e;--sw:#4338ca;--dt:#9d174d;
+  --paper:var(--card);--paper2:var(--card2);--sig:var(--acc);--on-sig:var(--on-acc);
+  --f-b:'Rubik',system-ui,sans-serif;--f-m:'JetBrains Mono',ui-monospace,monospace;--f-d:'PT Serif',Georgia,serif;
+  --shadow:0 1px 0 rgba(31,26,20,.06),0 6px 18px rgba(31,26,20,.07);--r:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14110e;--card:#1d1915;--card2:#262019;--ink:#f3ebdd;--ink2:#b3a58f;--rule:#3a3128;
+  --acc:#f97316;--acc2:#2dd4bf;--on-acc:#1a120b;--thread:#f87171;
+  --unk:#9b8f7e;--sus:#f5b041;--con:#f87171;--pro:#4ade80;--cln:#94a39a;--hw:#2dd4bf;--sw:#a5b4fc;--dt:#f9a8d4;
+  --shadow:0 1px 0 rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.35)}}
+:root[data-theme="dark"]{
+  --bg:#14110e;--card:#1d1915;--card2:#262019;--ink:#f3ebdd;--ink2:#b3a58f;--rule:#3a3128;
+  --acc:#f97316;--acc2:#2dd4bf;--on-acc:#1a120b;--thread:#f87171;
+  --unk:#9b8f7e;--sus:#f5b041;--con:#f87171;--pro:#4ade80;--cln:#94a39a;--hw:#2dd4bf;--sw:#a5b4fc;--dt:#f9a8d4;
+  --shadow:0 1px 0 rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.35)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 var(--f-b);-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:not-allowed}
+:focus-visible{outline:2.5px solid var(--acc);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{max-width:1180px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left,0px)) calc(96px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px))}
+/* HUD */
+.hud{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--rule);margin:0 -16px;padding:10px 16px}
+.hud-top{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.hud-title{font:700 1rem/1.2 var(--f-d);margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hud-title small{display:block;font:500 .7rem var(--f-m);color:var(--ink2);letter-spacing:.06em;text-transform:uppercase}
+.timer{display:flex;align-items:center;gap:8px;flex:none}
+.timer b{font:700 1.2rem var(--f-m);font-variant-numeric:tabular-nums}
+.ibtn{width:40px;height:40px;border-radius:12px;border:1.5px solid var(--rule);background:var(--card);display:grid;place-items:center}
+.ibtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding-top:8px}
+@media (min-width:700px){.stats{display:flex;gap:8px}}
+.stats::-webkit-scrollbar{display:none}
+.stat{flex:none;background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:6px 8px;min-width:0}
+@media (min-width:700px){.stat{min-width:104px;padding:6px 10px}}
+.stat span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 .6rem var(--f-m);color:var(--ink2);text-transform:uppercase;letter-spacing:.05em}
+.stat b{font:700 .8rem var(--f-m);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (min-width:700px){.stat span{font-size:.66rem}.stat b{font-size:.95rem}}
+.bar{height:5px;border-radius:3px;background:var(--card2);margin-top:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--c,var(--acc2));border-radius:3px;transition:width .4s}
+/* sections */
+.view{padding-top:14px}
+.grid{display:grid;gap:14px;grid-template-columns:minmax(0,1fr);align-items:start}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}.span2{grid-column:1/-1}}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;min-width:0}
+.card h2{margin:0 0 10px;font:700 1.05rem var(--f-d);display:flex;align-items:center;gap:8px}
+.card h2 .cnt{margin-left:auto;font:500 .75rem var(--f-m);color:var(--ink2)}
+.brief summary{list-style:none;cursor:pointer;display:flex;gap:10px;align-items:baseline}
+.brief summary::-webkit-details-marker{display:none}
+.brief h1{margin:0;font:700 clamp(1.5rem,5.5vw,2.3rem)/1.1 var(--f-d)}
+.brief .kick{font:500 .72rem var(--f-m);color:var(--acc);text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px}
+.brief p{margin:.6em 0 0;color:var(--ink2)}
+/* pills */
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.pill{border:1.5px solid var(--rule);background:var(--card2);border-radius:999px;padding:7px 13px;font:500 .85rem var(--f-b)}
+.pill[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.pill .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);margin-left:6px;vertical-align:middle}
+.mapwrap{background:var(--card2);border-radius:12px;padding:6px;border:1px solid var(--rule)}
+.mapwrap svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font:500 .74rem var(--f-m);color:var(--ink2);margin-top:8px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c);margin-right:5px}
+/* note / banner */
+.note{margin-top:12px;background:color-mix(in srgb,var(--sus) 16%,var(--card));border-left:4px solid var(--sus);border-radius:10px;padding:12px 14px}
+.note.win{background:color-mix(in srgb,var(--pro) 14%,var(--card));border-color:var(--pro)}
+.note.lose{background:color-mix(in srgb,var(--con) 14%,var(--card));border-color:var(--con)}
+.note b{display:block;font:700 1rem var(--f-d);margin-bottom:4px}
+.note .btn{margin-top:8px}
+.stars{font-size:1.4rem;letter-spacing:2px;color:var(--acc)}
+.prot-t{width:100%;min-height:8em;font:500 .76rem/1.4 var(--f-m);background:var(--card);color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:.5em;margin-top:8px}
+.concl{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.concl .btn{text-align:left;line-height:1.35}
+/* buttons */
+.btn{border:1.5px solid var(--ink);background:transparent;border-radius:10px;padding:9px 14px;font:600 .9rem var(--f-b)}
+.btn.sig{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.btn:disabled{opacity:.4}
+/* hypotheses */
+.hlist{display:flex;flex-direction:column;gap:8px}
+.hcard{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;text-align:left;border:1.5px solid var(--rule);background:var(--card);border-radius:12px;padding:11px 12px;position:relative;transition:transform .15s,border-color .15s}
+.hcard:not(:disabled):active{transform:scale(.985)}
+.hcard:not(:disabled):hover{border-color:var(--ink2)}
+.hcard .code{grid-row:span 2;font:700 .9rem var(--f-m);color:var(--acc);display:flex;flex-direction:column;line-height:1.2}
+.hcard .code em{font-style:normal;font-weight:500;color:var(--ink2);font-size:.76rem}
+.hcard b{font:600 .98rem/1.3 var(--f-b)}
+.hcard small{color:var(--ink2);font-size:.86rem}
+.hcard .tag{grid-column:2;justify-self:start;margin-top:4px}
+.hcard:disabled{opacity:.62}
+.hcard.conf{border-color:var(--con);background:color-mix(in srgb,var(--con) 8%,var(--card))}
+.hcard.rej{opacity:.75}.hcard.rej b{text-decoration:line-through}
+.tag{display:inline-block;font:600 .68rem var(--f-m);letter-spacing:.04em;text-transform:uppercase;border-radius:6px;padding:3px 7px;background:var(--card2);color:var(--ink2);border:1px solid var(--rule)}
+.tag.con{background:var(--con);color:var(--card);border-color:var(--con)}
+.tag.pro{background:var(--pro);color:var(--card);border-color:var(--pro)}
+.tag.sus{background:var(--sus);color:var(--card);border-color:var(--sus)}
+/* measures */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.mtile{text-align:left;border:1.5px solid var(--rule);border-radius:12px;background:var(--card2);padding:10px;display:flex;flex-direction:column;gap:3px;min-height:92px}
+.mtile .kcode{font:700 .78rem var(--f-m);color:var(--acc2)}
+.mtile b{font:600 .88rem/1.25 var(--f-b)}
+.mtile em{margin-top:auto;font:500 .7rem var(--f-m);font-style:normal;color:var(--ink2);text-transform:uppercase}
+.mtile.done{background:color-mix(in srgb,var(--pro) 16%,var(--card));border-color:var(--pro)}
+.mtile:disabled:not(.done){opacity:.5}
+/* dossier board */
+.board{position:relative}
+.pins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;position:relative;z-index:1}
+@media (min-width:600px){.pins{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.pin{position:relative;text-align:left;border:1px solid var(--rule);border-radius:10px;background:var(--card2);padding:12px 10px 10px;font-size:.84rem;line-height:1.3;transform:rotate(var(--rot,0deg));transition:transform .15s,box-shadow .15s}
+.pin::before{content:"";position:absolute;top:-6px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--thread);box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.pin b{display:block;font:700 .74rem var(--f-m);color:var(--ink2);margin-bottom:3px}
+.pin[aria-pressed="true"]{transform:rotate(0) scale(1.03);box-shadow:0 0 0 2.5px var(--acc);background:var(--card)}
+.pin.linked{border-color:var(--thread)}
+.thread{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:visible}
+.thread path{fill:none;stroke:var(--thread);stroke-width:2.5;stroke-linecap:round;opacity:.85}
+.boardbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.boardbar small{color:var(--ink2)}
+/* log */
+.log{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--rule);display:flex;flex-direction:column;gap:9px;max-height:26em;overflow:auto}
+.log li{position:relative;font-size:.88rem}
+.log li::before{content:"";position:absolute;left:-20px;top:.45em;width:10px;height:10px;border-radius:50%;background:var(--card);border:2px solid var(--unk)}
+.log li.ok::before{border-color:var(--pro);background:var(--pro)}.log li.warn::before{border-color:var(--con);background:var(--con)}.log li.miss::before{border-color:var(--sus)}.log li.info::before{border-color:var(--acc2)}
+.log .n{font:600 .7rem var(--f-m);color:var(--ink2);margin-right:6px}
+/* map svg classes */
+.st-unk{--c:var(--unk)}.st-sus{--c:var(--sus)}.st-con{--c:var(--con)}.st-pro{--c:var(--pro)}.st-cln{--c:var(--cln)}
+.node .disc{fill:var(--card);stroke:var(--c);stroke-width:3}
+.node .halo{fill:none;stroke:var(--c);stroke-width:1.5;stroke-dasharray:3 4;opacity:0}
+.node.ring .halo{opacity:1;stroke:var(--acc);stroke-width:2.4}
+.node.dim,.link.dim{opacity:.28}
+.node.thr .disc{stroke:var(--sus)!important;stroke-dasharray:5 3;stroke-width:4!important}
+.nl{font:600 12.5px var(--f-b);fill:var(--ink)}
+.ns{font:500 10px var(--f-m);fill:var(--c);letter-spacing:.05em;text-transform:uppercase}
+.link line{stroke:var(--c);stroke-width:3}
+.link rect{fill:var(--card);stroke:var(--c);stroke-width:1.4}
+.lc{font:600 11px var(--f-m);fill:var(--c)}
+.veil .disc{stroke:var(--unk);stroke-dasharray:5 5;fill:var(--card)}
+.veil text{font:700 26px var(--f-d);fill:var(--unk)}
+.ico{stroke:var(--ink);fill:none;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+/* bottom sheet */
+.sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;background:rgba(20,15,10,.45)}
+.sheet-card{width:min(640px,100%);background:var(--card);border-radius:20px 20px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:88vh;overflow:auto;animation:up .22s ease-out;box-shadow:0 -10px 30px rgba(0,0,0,.25)}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+.grab{width:42px;height:5px;border-radius:3px;background:var(--rule);margin:2px auto 12px}
+.sheet h3{margin:0;font:700 1.25rem/1.25 var(--f-d)}
+.sheet .sub{color:var(--ink2);margin:.4em 0 .8em}
+.labs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+.lab{border:2px solid var(--rule);border-radius:12px;background:var(--card2);padding:10px 8px;text-align:left;--l:var(--ink2)}
+.lab b{display:block;font:600 .9rem var(--f-b);color:var(--l)}
+.lab small{display:block;font-size:.72rem;color:var(--ink2);line-height:1.25}
+.lab .cost{font:600 .72rem var(--f-m);color:var(--ink)}
+.lab[aria-pressed="true"]{border-color:var(--l);background:color-mix(in srgb,var(--l) 14%,var(--card))}
+.sheet-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.result{perspective:900px;margin:8px 0}
+.result .face{border-radius:14px;padding:16px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 12%,var(--card));animation:flip .5s ease-out}
+@keyframes flip{from{transform:rotateX(70deg);opacity:0}to{transform:none;opacity:1}}
+.stamp{display:inline-block;font:700 .9rem var(--f-m);letter-spacing:.1em;text-transform:uppercase;border:2.5px solid var(--c);color:var(--c);border-radius:8px;padding:4px 10px;transform:rotate(-3deg);margin-bottom:8px}
+.working{display:flex;align-items:center;gap:10px;color:var(--ink2);margin:10px 0}
+.working i{width:18px;height:18px;border-radius:50%;border:3px solid var(--rule);border-top-color:var(--acc);animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.sheet-card,.result .face,.working i{animation:none}}
+/* dock */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--rule)}
+.dock-in{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:min(560px,100%)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 4px;border-radius:12px;text-decoration:none;color:var(--ink2);font:600 .76rem var(--f-b)}
+.tab svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tab[aria-current="page"]{background:var(--ink);color:var(--card)}
+/* toast */
+.toast-wrap{position:fixed;left:0;right:0;bottom:calc(84px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;pointer-events:none;z-index:50;padding:0 16px}
+#toast{background:var(--ink);color:var(--card);padding:.6em 1em;border-radius:10px;max-width:34em;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;font-size:.92rem}
+#toast.show{opacity:1;transform:none}
+/* engineer / player components */
+.bench{border-top:4px solid var(--lab,var(--acc))}
+.bench h2{color:var(--ink)}
+.rows{display:flex;flex-direction:column;gap:8px}
+.svgbox{background:var(--card2);border-radius:10px;border:1px solid var(--rule)}
+.svgbox svg{display:block;width:100%;height:auto}
+.spot{cursor:pointer;outline:none}
+.spot circle{fill:var(--card);stroke:var(--lab,var(--acc));stroke-width:2.2}
+.spot text{font:700 12px var(--f-m);fill:var(--lab,var(--acc));text-anchor:middle}
+.spot.seen circle{fill:var(--lab,var(--acc))}.spot.seen text{fill:var(--card)}
+.part{fill:var(--card);stroke:var(--ink2);stroke-width:2}
+.rrow{display:grid;grid-template-columns:2em 1fr;gap:8px;text-align:left;padding:9px 10px;border:1.5px solid var(--rule);background:var(--card2);border-radius:10px}
+.rrow .num{font:700 .9rem var(--f-m);color:var(--lab,var(--acc))}
+.rrow b{font-size:.92rem}.rrow small{display:block;color:var(--ink2);font-size:.84rem}
+.rrow.seen{border-color:var(--lab,var(--acc));background:var(--card)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--rule);background:var(--card2);border-radius:999px;padding:6px 12px;font:500 .82rem var(--f-b)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.swrow{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--rule);border-radius:10px;background:var(--card2)}
+.swrow b{font-size:.9rem}
+.msg{margin:4px 0 0;padding:9px 12px;border-radius:10px;background:color-mix(in srgb,var(--sus) 14%,var(--card));font-size:.9rem}
+.msg.ok{background:color-mix(in srgb,var(--pro) 14%,var(--card))}
+.ordl{display:flex;flex-direction:column;gap:6px}
+.ordr{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:8px 10px;border:1.5px solid var(--rule);border-radius:10px;background:var(--card2);font-size:.88rem}
+.ordr button{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--rule);background:var(--card)}
+.ordr button:disabled{opacity:.35}
+.pmt{width:100%;border-collapse:collapse;font-size:.82rem}
+.pmt th,.pmt td{padding:4px 2px;text-align:center;border-bottom:1px solid var(--rule)}
+.pmt th:first-child,.pmt td:first-child{text-align:left}
+.pmt button{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--rule);background:var(--card);font:700 .9rem var(--f-m)}
+.pmt button[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.done-row{display:flex;gap:8px;align-items:flex-start;font-size:.88rem;padding:6px 0;border-bottom:1px dashed var(--rule)}
+.tg{flex:none;font:600 .66rem var(--f-m);text-transform:uppercase;border-radius:6px;padding:3px 6px;background:var(--card2);border:1px solid var(--rule)}
+.tg.pro{background:var(--pro);color:var(--card);border-color:var(--pro)}
+.tg.cln{color:var(--ink2)}
+.tg.con{background:var(--con);color:var(--card)}
+.elog{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px;font-size:.85rem;max-height:14em;overflow:auto}
+.elog .n,.log2 .n{font:600 .7rem var(--f-m);color:var(--ink2);margin-right:6px}
+.rcards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.rc{text-align:left;border:1.5px solid var(--rule);border-radius:12px;background:var(--card2);padding:10px}
+.rc b{display:block}.rc small{color:var(--ink2)}
+.rc[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}.rc[aria-pressed="true"] small{color:var(--card);opacity:.8}
+.rdet,.cdet{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--card2);font-size:.9rem}
+.rdet p,.cdet p{margin:.2em 0}
+.catg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-height:20em;overflow:auto;margin-top:8px}
+@media (min-width:600px){.catg{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.cat{text-align:left;border:1.5px solid var(--rule);border-radius:10px;background:var(--card2);padding:8px;font-size:.82rem}
+.cat b{display:block}.cat small{color:var(--ink2)}
+.cat[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}.cat[aria-pressed="true"] small{color:var(--card);opacity:.8}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.stp{border:1.5px solid var(--rule);border-radius:10px;background:var(--card2);padding:8px 4px;font:600 .74rem var(--f-b)}
+.stp[aria-current="step"]{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.q{padding:10px;border:1px solid var(--rule);border-radius:10px;background:var(--card2);display:flex;flex-direction:column;gap:6px}
+.q p{margin:0;font-weight:600;font-size:.92rem}
+.opt{text-align:left;border:1.5px solid var(--rule);border-radius:10px;background:var(--card);padding:8px 10px;font-size:.88rem}
+.opt.right{border-color:var(--pro);background:color-mix(in srgb,var(--pro) 16%,var(--card))}
+.opt.wrong{border-color:var(--con);background:color-mix(in srgb,var(--con) 14%,var(--card))}
+.eps{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px}
+.ep{border:1.5px solid var(--ink2);border-radius:8px;background:var(--card2);padding:8px 0;font:700 .82rem var(--f-m)}
+.ep.soon{border-style:dashed;color:var(--ink2)}
+.ep[aria-current="true"]{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.facts{display:flex;flex-wrap:wrap;gap:6px}
+.fact{border:1px solid var(--rule);border-radius:999px;padding:4px 10px;font:500 .78rem var(--f-m);background:var(--card2)}
+.host summary{cursor:pointer;font:700 1rem var(--f-d)}
+.host table{width:100%;border-collapse:collapse;font-size:.86rem;min-width:520px}
+.host th,.host td{text-align:left;padding:6px;border-bottom:1px solid var(--rule);vertical-align:top}
+.host .tw{overflow-x:auto}
+.say{margin:.6em 0;padding:.5em .8em;border-left:3px solid var(--acc);background:var(--card2);border-radius:0 8px 8px 0}
+.say b{display:block;font:600 .7rem var(--f-m);text-transform:uppercase;color:var(--ink2)}
+.fine{font-size:.78rem;color:var(--ink2);margin:14px 0 0}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header class="hud">
+  <div class="hud-top">
+    <p class="hud-title"><small>Сезон 2 · эпизод 14</small>Подброшенные улики</p>
+    <div class="timer"><b id="h-time" aria-label="Таймер дела">25:00</b>
+      <button class="ibtn" id="h-start" aria-label="Запустить таймер"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></button>
+      <button class="ibtn" id="h-reset" aria-label="Начать сначала"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v5h5"/></svg></button>
+    </div>
+  </div>
+  <div class="stats" id="h-stats"></div>
+</header>
+
+<section id="v-detective" class="view">
+  <div class="grid">
+    <details class="card brief span2" open>
+      <summary><div><p class="kick">Дело 14 · сыщик</p><h1>Подброшенные улики</h1></div></summary>
+      <p>Понедельник, 10:00. Атакующий опубликовал единственный новый файл из дела 13 и приложил «доказательства»: строку журнала, скриншот переписки и фото «у серверной». Всё указывает на администратора, который нашёл устройство. Руководство хочет уволить его сегодня. Слишком гладко.</p>
+    </details>
+    <div class="card">
+      <h2>Доска улик</h2>
+      <div class="pills" id="d-vw" role="group" aria-label="Виды данных"></div>
+      <div class="mapwrap" id="d-map"></div>
+      <div class="legend"><span class="st-unk"><i></i>неизвестно</span><span class="st-sus"><i></i>подозрительно</span><span class="st-con"><i></i>подтверждено</span><span class="st-pro"><i></i>защищено</span><span class="st-cln"><i></i>чисто</span></div>
+      <div id="d-banner" role="status"></div>
+    </div>
+    <div class="card">
+      <h2>Гипотезы <span class="cnt" id="d-hcnt"></span></h2>
+      <div class="hlist" id="d-hyp"></div>
+    </div>
+    <div class="card">
+      <h2>Меры <span class="cnt" id="d-kcnt"></span></h2>
+      <div class="mgrid" id="d-k"></div>
+    </div>
+    <div class="card">
+      <h2>Хронология дела</h2>
+      <ol class="log" id="d-log" aria-live="polite"></ol>
+    </div>
+    <div class="card span2">
+      <h2>Нить досье <span class="cnt" id="d-keys"></span></h2>
+      <div class="board" id="d-board"><div class="pins" id="d-pins"></div><svg class="thread" id="d-thread" aria-hidden="true"></svg></div>
+      <div class="boardbar"><button class="btn sig" id="d-link" disabled>Связать нитью</button><small>Выберите две карточки. Слабое место связывают с путём к нему, след — со следом того же автора.</small></div>
+    </div>
+    <details class="card host span2" id="d-host"></details>
+  </div>
+  <p class="fine">Учебная модель: вымышленные люди, компании и документы. Приёмы описаны обобщённо, без инструкций.</p>
+</section>
+
+<section id="v-engineer" class="view" hidden>
+  <div class="grid">
+    <div class="card span2"><h2>Стенд: подброшенные улики <span class="cnt" id="e-count">0 из 4</span></h2>
+      <p style="margin:0 0 10px;color:var(--ink2)">Четыре опыта: оригинал журнала, разбор скриншота, алиби сотрудника и почерк подделки. Находки уходят к сыщику.</p>
+      <button class="btn" id="e-reset">Опыты заново</button></div>
+    <div class="card bench" style="--lab:var(--sw)"><h2>Программная · журнал</h2><div class="rows" id="e-hw"></div></div>
+    <div class="card bench" style="--lab:var(--hw)"><h2>Аппаратная · скриншот и фото</h2><div class="rows" id="e-sw"></div></div>
+    <div class="card bench" style="--lab:var(--dt)"><h2>Данные · алиби</h2><div class="rows" id="e-dt"></div></div>
+    <div class="card bench" style="--lab:var(--acc)"><h2>Знания · почерк подделки</h2><div class="rows" id="e-cl"></div></div>
+    <div class="card span2"><h2>Протокол</h2>
+      <div class="grid"><div><ol class="elog" id="e-log" aria-live="polite"></ol></div><div id="e-out"></div></div></div>
+  </div>
+</section>
+
+<section id="v-player" class="view" hidden>
+  <div class="grid">
+    <div class="card span2"><h2>Памятка участника</h2>
+      <p style="margin:0 0 10px;color:var(--ink2)">Эпизод 14: подделка, которая выглядит как улика, и сотрудник, которого хотят уволить.</p>
+      <div class="sheet-row"><a class="btn sig" href="#detective" style="text-decoration:none">Играть эпизод 14</a><a class="btn" href="#engineer" style="text-decoration:none">Стенд лабораторий</a></div></div>
+    <div class="card"><h2>Роль</h2><div class="rcards" id="p-roles"></div><div class="rdet" id="p-rdet"></div></div>
+    <div class="card"><h2>Моё дело</h2><div class="rows" id="p-prog"></div></div>
+    <div class="card"><h2>Как ходить</h2><div class="steps" id="p-steps"></div><div class="rdet" id="p-sdet"></div>
+      <div class="sheet-row" style="margin-top:8px"><button class="btn" id="p-prev">Назад</button><button class="btn" id="p-next">Дальше</button></div></div>
+    <div class="card"><h2>Проверьте себя</h2><div class="rows" id="p-quiz"></div></div>
+    <div class="card span2"><h2>Каталог слабых мест</h2><div class="chips" id="p-cf"></div><div class="catg" id="p-cat"></div><div class="cdet" id="p-cdet"></div></div>
+    <div class="card"><h2>Сезон 2: эпизоды 9–16</h2><div class="eps" id="p-eps"></div><div class="rdet" id="p-edet"></div></div>
+    <div class="card"><h2>Правила и режимы</h2>
+      <div class="facts"><span class="fact">25 минут</span><span class="fact">14 часов</span><span class="fact">презумпция невиновности</span><span class="fact">оригинал, а не копия</span><span class="fact">не увольнять до проверки</span></div>
+      <div class="chips" id="p-modes" style="margin-top:10px"></div><div class="rdet" id="p-mdet"></div></div>
+  </div>
+</section>
+</div>
+
+<nav class="dock" aria-label="Роли">
+  <div class="dock-in">
+    <a class="tab" href="#detective" data-r="detective"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>Сыщик</a>
+    <a class="tab" href="#engineer" data-r="engineer"><svg viewBox="0 0 24 24"><path d="M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3M8 3h8"/></svg>Инженер</a>
+    <a class="tab" href="#player" data-r="player"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Участник</a>
+  </div>
+</nav>
+
+<div class="sheet" id="sheet" hidden><div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="s-title" id="s-card"></div></div>
+<div class="toast-wrap"><div id="toast" role="status" aria-live="polite"></div></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-pc" viewBox="0 0 48 48"><rect x="6" y="8" width="36" height="25" rx="3"/><path d="M24 33v7M15 40h18"/></symbol>
+<symbol id="i-phone" viewBox="0 0 48 48"><rect x="14" y="5" width="20" height="38" rx="4"/><path d="M21 37h6"/></symbol>
+<symbol id="i-cloud" viewBox="0 0 48 48"><path d="M14 35a8 8 0 0 1 1-16 10 10 0 0 1 19 3 7 7 0 0 1 0 13z"/></symbol>
+<symbol id="i-mail" viewBox="0 0 48 48"><rect x="6" y="11" width="36" height="26" rx="2"/><path d="M6 13l18 14 18-14"/></symbol>
+<symbol id="i-lock" viewBox="0 0 48 48"><rect x="11" y="21" width="26" height="20" rx="2"/><path d="M16 21v-6a8 8 0 0 1 16 0v6"/></symbol>
+<symbol id="i-doc" viewBox="0 0 48 48"><path d="M12 5h17l8 8v30H12z"/><path d="M17 20h14M17 27h14M17 34h9"/></symbol>
+<symbol id="i-camera" viewBox="0 0 48 48"><rect x="5" y="14" width="30" height="20" rx="3"/><circle cx="28" cy="24" r="6"/></symbol>
+<symbol id="i-person" viewBox="0 0 48 48"><circle cx="24" cy="16" r="7"/><path d="M10 42c2-9 8-13 14-13s12 4 14 13"/></symbol>
+<symbol id="i-news" viewBox="0 0 48 48"><rect x="6" y="9" width="36" height="30" rx="2"/><path d="M12 16h24M12 23h11M12 30h11M28 23h8v7h-8z"/></symbol>
+</defs></svg>
+
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+let toastT = null;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3800); }
+const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+const ST = { unk: 'неизвестно', sus: 'подозрительно', con: 'подтверждено', pro: 'защищён', cln: 'чисто' };
+const LAB = {
+  hw: { n: 'Аппаратная', d: 'фото, пропуска, устройства', c: 'var(--hw)' },
+  sw: { n: 'Программная', d: 'журналы, форматы, интерфейсы', c: 'var(--sw)' },
+  dt: { n: 'Данные', d: 'метаданные, переписка, люди', c: 'var(--dt)' }
+};
+const VIEWS = { net: 'Связи', compare: 'Журнал', shot: 'Скриншот', time: 'Четыре дня' };
+const HY = [
+  { id: 'H1', c: 'Г-01', t: 'В публикации «доказательства» против администратора', d: 'Строка журнала, скриншот, фото — всё на одного человека.', n: 'У1', lab: 'dt', ok: 1, tm: 'пн 10:00', tn: 4920, r: 'В архиве три «доказательства» против администратора, который нашёл устройство в деле 13. Руководство хочет уволить его сегодня.' },
+  { id: 'H2', c: 'Г-02', t: 'Администратор действительно выгрузил архив', d: 'Его учётка в опубликованной строке журнала.', n: 'У4', lab: 'dt', ok: 0, ins: 1, legal: 1, r: 'В оригинальном журнале его учётка в тот день не входила. Опубликованная строка не совпадает с оригиналом.' },
+  { id: 'H3', c: 'Г-03', t: 'Строка журнала подделана', d: 'Чем опубликованная строка отличается от настоящей?', n: 'У2', lab: 'sw', ok: 1, preRej: 'H2', view: 'compare', r: 'Строка записана в формате, который ввели 1 ноября, а дата в ней — 12 октября. Её нет в ежедневном отпечатке журнала.' },
+  { id: 'H4', c: 'Г-04', t: 'Скриншот переписки собран из кусков', d: 'Похоже на настоящий снимок экрана.', n: 'У3', lab: 'sw', ok: 1, view: 'shot', r: 'Шрифт из версии мессенджера, вышедшей позже даты на снимке. У пузырей разные тени, время идёт не по порядку.' },
+  { id: 'H5', c: 'Г-05', t: 'Фото «у серверной» снято в другом месте', d: 'Где на самом деле стоит человек на фото?', n: 'У6', lab: 'hw', ok: 1, key: 'K1', r: 'Розетки и плитка не как в серверной. Фон совпадает с лобби из дела 5, где стоял двойник точки.' },
+  { id: 'H6', c: 'Г-06', t: 'У администратора алиби', d: 'Где он был в «день выгрузки»?', n: 'У5', lab: 'hw', ok: 1, tm: 'сб 09:00', tn: 1980, legal: 1, r: 'В отпуске с субботы. Пропуск не использовался, удалённый доступ к архиву отключён с пятницы по регламенту.' },
+  { id: 'H7', c: 'Г-07', t: 'Администратор в сговоре с подрядчиком', d: 'Может, он связан с делом 11?', n: 'У4', lab: 'dt', ok: 0, legal: 1, r: 'Связей с подрядчиком нет: ни переписки, ни общих учёток.' },
+  { id: 'H8', c: 'Г-08', t: 'Подделку сделал тот же автор', d: 'Что в метаданных опубликованного файла?', n: 'У8', lab: 'dt', ok: 1, key: 'K2', r: 'Имя пользователя и часовой пояс в метаданных совпадают с «Регламентом v2» из дела 12.' },
+  { id: 'H9', c: 'Г-09', t: 'Цель — убрать того, кто нашёл устройство', d: 'Почему именно он?', n: 'У4', lab: 'dt', ok: 1, pre: 'H8', r: 'Именно он нашёл устройство в деле 13. Без него центр слабее, а команда расколота подозрениями.' },
+  { id: 'H10', c: 'Г-10', t: 'Журналисты получили подделку заранее', d: 'Откуда «эксклюзив» в утренних новостях?', n: 'У7', lab: 'dt', ok: 1, tm: 'вс 22:00', tn: 4200, r: 'В воскресенье в 22:00 журналистам ушло письмо с «эксклюзивом» и одним настоящим файлом, чтобы поверили остальному.' },
+  { id: 'H11', c: 'Г-11', t: 'Оригинал журнала изменили внутри центра', d: 'Может, подделан наш оригинал?', n: 'У2', lab: 'sw', ok: 0, r: 'Оригинал цел: ежедневные отпечатки журнала совпадают.' },
+  { id: 'H12', c: 'Г-12', t: 'Скриншот сделан на телефоне администратора', d: 'Его имя на экране.', n: 'У3', lab: 'hw', ok: 0, legal: 1, r: 'На его телефоне такой переписки нет, а края наложения видны при увеличении.' }
+];
+const CHAIN = HY.filter(h => h.tn).map(h => h.id);
+const MS = [
+  { id: 'M1', c: 'М-01', t: 'Не увольнять до проверки, доступы — по процедуре', needs: 'H1' },
+  { id: 'M2', c: 'М-02', t: 'Сохранить публикацию и оригиналы журналов с отпечатками', needs: null },
+  { id: 'M3', c: 'М-03', t: 'Сравнить строку с оригиналом журнала', needs: 'H3', pre: ['M2'], v: ['В-01', 'Сравнили с рабочей копией, а не с оригиналом с отпечатком: вывод не доказать.', { h: 1, i: 20 }] },
+  { id: 'M4', c: 'М-04', t: 'Экспертиза метаданных подделок', needs: 'H8', pre: ['M2'], v: ['В-02', 'Файлы пересохранили до экспертизы: метаданные перезаписаны.', { i: 20 }] },
+  { id: 'M5', c: 'М-05', t: 'Заявление для СМИ с фактами', needs: 'H3' },
+  { id: 'M6', c: 'М-06', t: 'Поддержка сотрудника и юрист', needs: 'H6' },
+  { id: 'M7', c: 'М-07', t: 'Заявление в полицию о подделке', needs: 'H8', pre: ['M2'], v: ['В-03', 'Заявление без сохранённых оригиналов: доказательств нет.', { h: 1 }] },
+  { id: 'M8', c: 'М-08', t: 'Ежедневные отпечатки всех журналов', needs: 'H3' },
+  { id: 'M9', c: 'М-09', t: 'Передать журналистам материалы по известному каналу', needs: 'H10' },
+  { id: 'M10', c: 'М-10', t: 'Уволить администратора сразу', needs: null, decoy: 1 },
+  { id: 'M11', c: 'М-11', t: 'Объяснить команде, что произошло', needs: 'H9' },
+  { id: 'M12', c: 'М-12', t: 'Водяные знаки на внутренних документах', needs: 'H5' }
+];
+const codeOf = id => HY.find(h => h.id === id).c;
+const NODE = {
+  U7: { n: 'У7', t: 'Журналисты', x: 100, y: 55, i: 'news' },
+  U8: { n: 'У8', t: 'Метаданные файла', x: 330, y: 55, i: 'cloud' },
+  U9: { n: 'У9', t: 'Письмо журналистам', x: 550, y: 55, i: null },
+  U2: { n: 'У2', t: 'Оригинал журнала', x: 100, y: 215, i: 'lock' },
+  U1: { n: 'У1', t: 'Публикация', x: 330, y: 215, i: 'doc' },
+  U3: { n: 'У3', t: 'Скриншот', x: 550, y: 215, i: 'phone' },
+  U4: { n: 'У4', t: 'Администратор', x: 100, y: 375, i: 'person' },
+  U5: { n: 'У5', t: 'Пропуска и доступ', x: 330, y: 375, i: 'pc' },
+  U6: { n: 'У6', t: 'Фото «у серверной»', x: 550, y: 375, i: 'camera' }
+};
+const LINK = {
+  L01: { a: 'U7', b: 'U1' }, L02: { a: 'U2', b: 'U1' }, L03: { a: 'U3', b: 'U1' }, L04: { a: 'U4', b: 'U2' }, L05: { a: 'U5', b: 'U4' },
+  L06: { a: 'U6', b: 'U1' }, L07: { a: 'U8', b: 'U1' }, L08: { a: 'U9', b: 'U8' }, L10: { a: 'U9', b: 'U7' }
+};
+const NS = {
+  U1: { h: ['H1'], con: ['H1'], pro: ['M2'] },
+  U2: { h: ['H3', 'H11'], con: ['H3'], pro: ['M3', 'M8'] },
+  U3: { h: ['H4', 'H12'], con: ['H4'] },
+  U4: { h: ['H2', 'H7', 'H9'], con: ['H9'], pro: ['M1', 'M6'] },
+  U5: { h: ['H6'], con: ['H6'] },
+  U6: { h: ['H5'], con: ['H5'], pro: ['M12'] },
+  U7: { h: ['H10'], con: ['H10'], pro: ['M5', 'M9'] },
+  U8: { h: ['H8'], con: ['H8'], pro: ['M4'] },
+  U9: { h: ['H10'], con: ['H10'], pro: ['M7'] }
+};
+const LS = {
+  L01: { h: ['H10'], con: ['H10'], pro: ['M5'] }, L02: { h: ['H3'], con: ['H3'], pro: ['M3'] }, L03: { h: ['H4'], con: ['H4'] }, L04: { h: ['H2'], con: [] }, L05: { h: ['H6'], con: ['H6'], pro: ['M6'] },
+  L06: { h: ['H5'], con: ['H5'] }, L07: { h: ['H8'], con: ['H8'], pro: ['M4'] }, L08: { h: ['H10'], con: ['H10'] }, L10: { h: ['H10'], con: ['H10'] }
+};
+const THREAT = ['U4', 'U7', 'U1', 'U5', 'U2', 'U3'];
+const DOS = [
+  { id: 'D1', k: 'trace', ep: 13, t: 'Администратор нашёл устройство в серверной' },
+  { id: 'D2', k: 'trace', ep: 12, t: 'Метаданные «Регламента v2»: имя и часовой пояс' },
+  { id: 'D3', k: 'trace', ep: 13, t: 'Единственный новый файл в публикации' },
+  { id: 'D4', k: 'trace', ep: 5, t: 'Фото лобби, где стоял двойник точки' },
+  { id: 'D5', k: 'weak', ep: 14, t: 'Новый формат журнала введён 1 ноября' },
+  { id: 'D6', k: 'trace', ep: 14, t: 'Строка журнала от 12 октября' },
+  { id: 'D8', k: 'trace', ep: 14, t: 'Фото «у серверной»' },
+  { id: 'D11', k: 'weak', ep: 14, t: 'Руководство хочет уволить сотрудника сегодня' },
+  { id: 'D12', k: 'trace', ep: 14, t: 'Ежедневные отпечатки журналов' },
+  { id: 'D7', k: 'trace', ep: 14, t: 'Метаданные опубликованного файла', after: 'H1' },
+  { id: 'D9', k: 'trace', ep: 14, t: 'Письмо журналистам за 12 часов', after: 'H10' },
+  { id: 'D10', k: 'path', ep: 10, t: 'Атакующий учится на реакции центра' }
+];
+const RULES = [
+  { k: 'K1', ids: ['D8', 'D4'], t: 'Фон на фото «у серверной» совпадает с лобби из дела 5.' },
+  { k: 'K2', ids: ['D7', 'D2'], t: 'Одинаковые метаданные у подделки и у «Регламента v2»: автор тот же.' },
+  { k: 'K3', ids: ['D5', 'D6'], t: 'Строка от октября записана в формате, который появился в ноябре.' },
+  { k: 'K4', ids: ['D1', 'D11'], t: 'Уволить того, кто нашёл устройство, выгоднее всего атакующему.' },
+  { k: 'K5', ids: ['D3', 'D9'], t: 'Подделку отдали журналистам вместе с одним настоящим файлом, чтобы поверили остальному.' }
+];
+const CONCL = [
+  { id: 'c1', t: '«Доказательства» подделаны тем же автором: формат журнала новее даты, скриншот собран из кусков, фото из лобби, метаданные как в деле 12. Цель — убрать администратора, который нашёл устройство, и расколоть команду. Сотрудник невиновен', ok: 1 },
+  { id: 'c2', t: 'Администратор виновен, его нужно уволить' },
+  { id: 'c3', t: 'Журнал изменили внутри центра' },
+  { id: 'c4', t: 'Журналисты ошиблись сами, атакующий ни при чём' }
+];
+const X0 = 0, X1 = 5040;
+const LANES = ['Публикация', 'Журналисты', 'Журнал доступа', 'Пропуска', 'Администратор'];
+const NOISE = [[1200, 3600], [2600, 3900], [500, 900, 1300, 3000, 4500], [600, 1000, 1350], []];
+const KEYEV = { H1: [0, 'публикация'], H10: [1, 'письмо'], H6: [4, 'отпуск'] };
+const ALWAYS = ['H1', 'H6'];
+const LOGC = [['Дата в строке', '12.10.2026', '12.10.2026', 0], ['Формат строки', 'старый, текстовый', 'новый, с полем trace_id', 1], ['Учётка', 'строки нет', 'администратор', 1], ['Действие', '—', 'экспорт архива', 1], ['Ежедневный отпечаток', 'совпадает', 'строки в нём нет', 1], ['Часовой пояс', 'МСК', 'UTC+1', 1]];
+function compareSVG() {
+  let s = '<svg viewBox="0 0 660 450" role="img" aria-label="Оригинал журнала и опубликованная строка по шести признакам"><text x="20" y="26" style="font:700 13px var(--f-m);fill:var(--ink2)">ОРИГИНАЛ ЖУРНАЛА И ОПУБЛИКОВАННАЯ СТРОКА</text><text x="230" y="54" style="font:700 12px var(--f-m);fill:var(--ink2)">ОРИГИНАЛ</text><text x="450" y="54" style="font:700 12px var(--f-m);fill:var(--ink2)">ПУБЛИКАЦИЯ</text>';
+  LOGC.forEach((r, i) => { const y = 64 + i * 62, hl = r[3] && G.conf.has('H3'); s += `<rect x="16" y="${y}" width="628" height="54" rx="10" style="fill:var(--card);stroke:${hl ? 'var(--con)' : 'var(--rule)'};stroke-width:${hl ? 2.5 : 1}"/><text x="30" y="${y + 32}" style="font:600 11px var(--f-m);fill:var(--ink2)">${r[0].toUpperCase()}</text><text x="230" y="${y + 32}" style="font:600 13px var(--f-b);fill:var(--ink)">${r[1]}</text><text x="450" y="${y + 32}" style="font:600 13px var(--f-b);fill:var(--ink)">${r[2]}</text>`; });
+  return s + '</svg>';
+}
+const SHOT = [['Шрифт', 'из версии мессенджера, вышедшей позже даты'], ['Тени у сообщений', 'разные у соседних пузырей'], ['Время сообщений', 'идёт не по порядку'], ['Аватар', 'обрезан по-разному в двух местах'], ['Строка состояния', 'другой оператор связи']];
+function shotSVG() {
+  const on = G.conf.has('H4');
+  let s = '<svg viewBox="0 0 660 450" role="img" aria-label="Разбор скриншота переписки: пять признаков монтажа"><rect x="40" y="30" width="200" height="390" rx="26" style="fill:var(--card);stroke:var(--ink2);stroke-width:2"/><rect x="56" y="54" width="168" height="14" rx="4" style="fill:var(--card2)"/>';
+  [[70, 100, 120], [110, 150, 100], [70, 210, 140], [120, 270, 90], [70, 330, 130]].forEach(([x, y, w], i) => { s += `<rect x="${x}" y="${y}" width="${w}" height="34" rx="12" style="fill:${i % 2 ? 'var(--acc2)' : 'var(--card2)'};opacity:.85"/>`; });
+  [[230, 61], [200, 116], [210, 166], [62, 226], [196, 286]].forEach(([x, y], i) => { s += `<circle cx="${x}" cy="${y}" r="11" style="fill:${on ? 'var(--con)' : 'var(--acc)'}"/><text x="${x}" y="${y + 4}" text-anchor="middle" style="font:700 12px var(--f-m);fill:var(--card)">${i + 1}</text>`; });
+  SHOT.forEach((r, i) => { const y = 60 + i * 72; s += `<text x="280" y="${y}" style="font:700 14px var(--f-b);fill:var(--ink)">${i + 1}. ${r[0]}</text><text x="280" y="${y + 22}" style="font:500 13px var(--f-b);fill:var(--ink2)">${on ? r[1] : 'не проверено'}</text>`; });
+  return s + '</svg>';
+}
+function timeSVG() {
+  const X = t => 110 + (t - X0) / (X1 - X0) * 530, Y = i => 66 + i * 60;
+  let s = '<svg viewBox="0 0 660 450" role="img" aria-label="Лента с пятницы по понедельник: публикация, журналисты, журнал доступа, пропуска, администратор">';
+  ['пт', 'сб', 'вс', 'пн'].forEach((dn, k) => { const t = k * 1440; s += `<line x1="${X(t)}" x2="${X(t)}" y1="40" y2="410" style="stroke:var(--rule)"/><text x="${X(t) + 4}" y="430" style="font:500 11px var(--f-m);fill:var(--ink2)">${dn}</text>`; });
+  LANES.forEach((n, i) => { s += `<text x="104" y="${Y(i) + 4}" text-anchor="end" style="font:600 10px var(--f-b);fill:var(--ink)">${n}</text><line x1="110" x2="640" y1="${Y(i)}" y2="${Y(i)}" style="stroke:var(--rule)"/>`; });
+  NOISE.forEach((a, i) => a.forEach(t => { s += `<circle cx="${X(t)}" cy="${Y(i)}" r="4" style="fill:var(--ink2);opacity:.45"/>`; }));
+  Object.entries(KEYEV).forEach(([id, [lane, txt]]) => {
+    const h = HY.find(x => x.id === id), show = G.conf.has(id) || ALWAYS.includes(id);
+    if (!show) return;
+    s += `<circle cx="${X(h.tn)}" cy="${Y(lane)}" r="7" style="fill:${G.conf.has(id) ? 'var(--con)' : 'var(--sus)'}"/><text x="${X(h.tn)}" y="${Y(lane) - 12}" text-anchor="middle" style="font:600 10px var(--f-m);fill:var(--ink)">${h.tm} ${txt}</text>`;
+  });
+  return s + '</svg>';
+}
+let G, iv = null;
+function fresh() {
+  clearInterval(iv); iv = null;
+  G = { hours: 14, trust: 3, integ: 100, thr: 0, view: 'net', seen: new Set(['net']), sel: null, lab: null, conf: new Set(), rej: new Set(), played: new Set(), keys: new Set(), dsel: [], pairs: [], last: null, busy: false, streak: 0, simple: false, over: null, pend: false, concl: null, why: '', log: [], compl: 0, left: 1500, money: 100, run: false, half: false, acts: [] };
+}
+const addLog = (tag, text, tone) => G.log.unshift({ n: G.log.length + 1, tag, text, tone: tone || '' });
+const needAll = a => a.every(k => G.played.has(k));
+const required = () => G.simple ? ['M1', 'M2', 'M3'] : ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7'];
+const reqOK = () => required().every(g => g.split('|').some(k => G.played.has(k)));
+const stopped = () => G.played.has('M5');
+const simpleHyp = ['H1', 'H2', 'H3', 'H6', 'H11'], simpleKeep = ['M1', 'M2', 'M3'];
+const isOut = id => G.simple && !simpleKeep.includes(id);
+function stateOf(d) {
+  if (d.pro && needAll(d.pro)) return 'pro';
+  if (d.con.some(x => G.conf.has(x))) return 'con';
+  if (G.sel && d.h.includes(G.sel)) return 'sus';
+  if (d.h.length && d.h.every(x => G.rej.has(x))) return 'cln';
+  return 'unk';
+}
+const revealed = () => G.conf.has('H10');
+const dimNode = id => G.simple && !['U1', 'U2', 'U4', 'U5'].includes(id);
+function netSVG() {
+  const ring = G.sel ? Object.keys(NS).filter(k => NS[k].h.includes(G.sel)) : [];
+  const thr = THREAT.slice(0, G.thr).filter(id => stateOf(NS[id]) !== 'pro');
+  let s = '<svg viewBox="0 0 660 450" role="img" aria-label="Карта связей: публикация в центре, журналисты, метаданные, оригинал журнала, скриншот, администратор, пропуска, фото и скрытое письмо журналистам">';
+  Object.entries(LINK).forEach(([id, l]) => {
+    if ((id === 'L08' || id === 'L10') && !revealed()) return;
+    const a = NODE[l.a], b = NODE[l.b], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    s += `<g class="link st-${stateOf(LS[id])}${G.simple && !['L02', 'L04', 'L05'].includes(id) ? ' dim' : ''}"><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/><g transform="translate(${mx} ${my})"><rect x="-23" y="-10" width="46" height="20" rx="3"/><text class="lc" y="4" text-anchor="middle">Л-${id.slice(2)}</text></g></g>`;
+  });
+  Object.entries(NODE).forEach(([id, n]) => {
+    if (id === 'U9' && !revealed()) {
+      s += `<g class="node veil" transform="translate(${n.x} ${n.y})"><circle class="disc" r="32"/><text y="9" text-anchor="middle">?</text><text class="ns" y="64" text-anchor="middle">скрыт</text></g>`;
+      return;
+    }
+    const st = stateOf(NS[id]);
+    const ico = n.i ? `<use href="#i-${n.i}" x="-17" y="-17" width="34" height="34" class="ico"/>` : `<text y="9" text-anchor="middle" style="font:600 24px var(--f-d);fill:var(--ink)">?</text>`;
+    const tr = thr.includes(id);
+    s += `<g class="node st-${st}${dimNode(id) ? ' dim' : ''}${ring.includes(id) && id !== 'U9' ? ' ring' : ''}${tr ? ' thr' : ''}" transform="translate(${n.x} ${n.y})" role="img" aria-label="${n.n} ${n.t}: ${ST[st]}${tr ? ', под риском' : ''}"><circle class="halo" r="41"/><circle class="disc" r="32"/>${ico}<text class="nl" y="52" text-anchor="middle">${n.n} ${n.t}</text><text class="ns" y="66" text-anchor="middle">${tr ? 'под риском' : ST[st]}</text></g>`;
+  });
+  return s + '</svg>';
+}
+const minOf = t => t;
+function timelineText() {
+  const got = CHAIN.filter(id => G.conf.has(id)).map(id => HY.find(h => h.id === id)).sort((a, b) => a.tn - b.tn);
+  return got.map(h => `${h.tm} ${h.c}`).join(' → ') || 'звеньев нет';
+}
+const conclOK = () => !!(CONCL.find(c => c.id === G.concl) || {}).ok;
+function pts() { return (G.trust === 3 ? 1 : 0) + (G.integ >= 80 ? 1 : 0) + (conclOK() ? 1 : 0) + (['M8', 'M9', 'M11'].filter(m => G.played.has(m)).length >= 2 ? 1 : 0) + (G.thr <= 3 ? 1 : 0) + (G.money === 100 ? 1 : 0); }
+function stars() { return G.simple ? 1 : (pts() >= 5 ? 3 : pts() >= 3 ? 2 : 1); }
+function protocol() {
+  const res = G.over === 'win' ? (G.simple ? 'закрыто с упрощением' : 'закрыто') : 'не закрыто';
+  return ['Сцена 14 «Подброшенные улики»', 'Доверие команды: ' + G.money + '%', 'Итог: ' + res, 'Часов осталось: ' + G.hours + ' из 14', 'Доверие: ' + G.trust + ' из 3', 'Целостность улик: ' + G.integ + '%', 'Давление СМИ: ' + G.thr + ' из 6', 'Осложнений: ' + G.compl,
+    'Упрощение: ' + (G.simple ? 'да' : 'нет'), 'Подтверждено: ' + ([...G.conf].map(codeOf).join(', ') || 'ничего'), 'Хронология: ' + timelineText(),
+    'Ключей досье: ' + G.keys.size, 'Заключение: ' + (G.concl ? (CONCL.find(c => c.id === G.concl).t) : 'нет'), 'Порядок действий: ' + (G.acts.join(' → ') || 'нет')].join('\n');
+}
+function buzz() { try { if (navigator.vibrate) navigator.vibrate(12); } catch (err) { /* без вибрации */ } }
+const note = (cls, inner) => `<div class="note ${cls}">${inner}</div>`;
+function bannerHTML() {
+  if (G.over === 'win') {
+    const n = stars(), ok = conclOK();
+    return note('win', `<b>${G.simple ? 'Строка журнала опровергнута, сотрудник не уволен. Прохождение с упрощением.' : 'Подделка разоблачена, сотрудник защищён, команда цела.'}</b><span class="stars" aria-label="${n} из 3 звёзд">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span><p>${ok ? 'Заключение верное: подделку сделал тот же автор, чтобы убрать того, кто нашёл устройство.' : 'Заключение неточное: сравните строку с оригиналом и метаданные с делом 12.'} Пока центр опровергал подделку, атакующий написал клиенту центра от его имени. Об этом эпизод 15 «Данные клиента».</p><textarea class="prot-t" id="d-prot" readonly aria-label="Протокол прогона">${protocol()}</textarea><div class="sheet-row"><button class="btn" data-act="copy">Копировать протокол</button><button class="btn" data-act="reset">Сыграть заново</button></div>`);
+  }
+  if (G.over === 'lose') return note('lose', `<b>${G.why}</b><p>Подтверждено: ${[...G.conf].map(codeOf).join(', ') || 'ничего'}.</p><textarea class="prot-t" id="d-prot" readonly aria-label="Протокол прогона">${protocol()}</textarea><div class="sheet-row"><button class="btn" data-act="copy">Копировать протокол</button><button class="btn" data-act="reset">Попробовать снова</button></div>`);
+  if (G.pend) return note('', `<b>Заключение сыщика</b>Обязательные меры стоят. Можно ещё поставить М-08, М-09, М-11 ради звезды. Выберите заключение.<div class="concl">${CONCL.map(c => `<button class="btn" data-act="concl" data-v="${c.id}">${c.t}</button>`).join('')}</div>`);
+  if (G.simple) return note('', '<b>Центр сузил задачу до журнала и сотрудника</b>«Сначала оригинал, потом выводы.» Сыграйте М-01, М-02, затем М-03.');
+  return note('', '<b>С чего начать</b>Нажмите на гипотезу, выберите лабораторию в открывшейся карточке. Переключайте виды над картой и связывайте досье нитью.');
+}
+const STATS = () => [
+  ['Часы', `${G.hours}/14`, G.hours / 14, 'var(--acc2)'],
+  ['Доверие', `${Math.max(0, G.trust)}/3`, Math.max(0, G.trust) / 3, 'var(--acc)'],
+  ['Улики', G.integ + '%', G.integ / 100, 'var(--pro)'],
+  ['Команда', G.money + '%', G.money / 100, 'var(--sw)'],
+  ['СМИ', `${G.thr}/6`, G.thr / 6, 'var(--con)']
+];
+function renderHUD() {
+  $('#h-stats').innerHTML = STATS().map(([k, v, f, c]) => `<div class="stat"><span>${k}</span><b>${v}</b><div class="bar" style="--c:${c}"><i style="width:${Math.round(f * 100)}%"></i></div></div>`).join('');
+  $('#h-time').textContent = fmt(G.left);
+  const sb = $('#h-start'); sb.disabled = !!G.over; sb.setAttribute('aria-label', G.run ? 'Пауза' : 'Запустить таймер');
+  sb.innerHTML = G.run ? '<svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg>';
+}
+function gateOf(h) {
+  if (h.preRej && !G.rej.has(h.preRej)) return 'ждёт опровержения ' + codeOf(h.preRej);
+  if (h.pre && !G.conf.has(h.pre)) return 'ждёт ' + codeOf(h.pre);
+  if (h.key && !G.keys.has(h.key)) return 'ждёт нить досье';
+  if (h.view && !G.seen.has(h.view)) return 'смотрите вид «' + VIEWS[h.view] + '»';
+  return '';
+}
+function renderDos() {
+  const vis = DOS.filter(d => !d.after || G.conf.has(d.after)), linked = new Set(G.pairs.flat());
+  $('#d-pins').innerHTML = vis.map((d, i) => `<button class="pin${linked.has(d.id) ? ' linked' : ''}" data-d="${d.id}" aria-pressed="${G.dsel.includes(d.id)}" style="--rot:${[-1.5, 1, -0.5, 1.5, -1, 0.5][i % 6]}deg"><b>${d.id} · дело ${d.ep} · ${({ weak: 'слабое место', path: 'путь', trace: 'след' })[d.k]}</b>${d.t}</button>`).join('');
+  $('#d-link').disabled = G.dsel.length !== 2 || !!G.over;
+  $('#d-keys').textContent = 'нитей: ' + G.keys.size;
+  requestAnimationFrame(drawThreads);
+}
+function drawThreads() {
+  const svg = $('#d-thread'), box = $('#d-board'); if (!svg || !box) return;
+  const r0 = box.getBoundingClientRect(); let p = '';
+  G.pairs.forEach(([a, b]) => {
+    const ea = box.querySelector(`[data-d="${a}"]`), eb = box.querySelector(`[data-d="${b}"]`); if (!ea || !eb) return;
+    const ra = ea.getBoundingClientRect(), rb = eb.getBoundingClientRect();
+    const x1 = ra.left + ra.width / 2 - r0.left, y1 = ra.top - r0.top, x2 = rb.left + rb.width / 2 - r0.left, y2 = rb.top - r0.top;
+    const mx = (x1 + x2) / 2, my = Math.max(y1, y2) + 30;
+    p += `<path d="M${x1} ${y1} Q${mx} ${my} ${x2} ${y2}"/>`;
+  });
+  svg.innerHTML = p;
+}
+function render() {
+  if (typeof E !== 'undefined' && E) renderProgress();
+  renderHUD();
+  $('#d-vw').innerHTML = Object.entries(VIEWS).map(([k, v]) => `<button class="pill" data-v="${k}" aria-pressed="${G.view === k}">${v}${G.seen.has(k) || k === 'net' ? '' : '<span class="dot" aria-label="ещё не смотрели"></span>'}</button>`).join('');
+  $('#d-map').innerHTML = ({ net: netSVG, compare: compareSVG, shot: shotSVG, time: timeSVG })[G.view]();
+  $('#d-banner').innerHTML = bannerHTML();
+  const open = HY.filter(h => !G.conf.has(h.id) && !G.rej.has(h.id)).length;
+  $('#d-hcnt').textContent = `открыто ${open} из ${HY.length}`;
+  $('#d-hyp').innerHTML = HY.map(h => {
+    const conf = G.conf.has(h.id), rej = G.rej.has(h.id), gate = gateOf(h), out = G.simple && !simpleHyp.includes(h.id);
+    const dis = G.over || conf || rej || !!gate || out;
+    const tag = conf ? '<span class="tag con">подтверждена</span>' : rej ? '<span class="tag">не подтверждена</span>' : out ? '<span class="tag">вне задачи</span>' : gate ? `<span class="tag">${gate}</span>` : '<span class="tag sus">можно проверить</span>';
+    return `<button class="hcard${conf ? ' conf' : ''}${rej ? ' rej' : ''}" data-h="${h.id}"${dis ? ' disabled' : ''}><span class="code">${h.c}<em>${h.n}</em></span><span><b>${h.t}</b><br><small>${h.d}</small></span>${tag.replace('<span class="tag', '<span class="tag')}</button>`;
+  }).join('').replace(/<\/span><\/span><span class="tag/g, '</span></span><span class="tag');
+  $('#d-kcnt').textContent = `поставлено ${G.played.size} из ${MS.length}`;
+  $('#d-k').innerHTML = MS.map(m => {
+    const played = G.played.has(m.id), out = isOut(m.id), lk = (m.needs && !G.conf.has(m.needs)) || out;
+    const st = played ? 'поставлено' : out ? 'вне зоны' : lk ? 'ждёт ' + codeOf(m.needs) : (m.decoy ? 'решение руководства' : 'поставить');
+    return `<button class="mtile${played ? ' done' : ''}" data-m="${m.id}"${(lk || played || G.over) ? ' disabled' : ''}><span class="kcode">${m.c}</span><b>${m.t}</b><em>${st}</em></button>`;
+  }).join('');
+  $('#d-log').innerHTML = G.log.length ? G.log.map(l => `<li class="${l.tone}"><span class="n">№${l.n}</span><b>${l.tag}.</b> ${l.text}</li>`).join('') : '<li>Дело открыто. Журнал пуст.</li>';
+  renderDos();
+}
+function openSheet(id) { G.sel = id; G.lab = null; G.last = null; $('#sheet').hidden = false; renderSheet(); setTimeout(() => { const b = $('#s-card button'); if (b) b.focus(); }, 30); }
+function closeSheet() { $('#sheet').hidden = true; G.sel = null; G.lab = null; G.last = null; G.busy = false; render(); }
+function renderSheet() {
+  const sh = $('#sheet'); if (sh.hidden) return;
+  const card = $('#s-card');
+  if (G.last) {
+    const h = HY.find(x => x.id === G.last.id), L = G.last;
+    const c = L.ok ? 'var(--con)' : L.own ? (L.ins ? 'var(--acc2)' : 'var(--cln)') : 'var(--sus)';
+    const stamp = L.ok ? 'подтверждено' : !L.own ? 'не та лаборатория' : L.ins ? 'опровергнуто — это находка' : 'не подтверждено';
+    const txt = !L.own ? `${LAB[L.lab].n} ничего не нашла: это не её профиль. Потрачено ${L.cost} ч.` : h.r;
+    card.innerHTML = `<div class="grab"></div><p class="kick" style="font:500 .72rem var(--f-m);color:var(--ink2);margin:0 0 4px">${h.c} · ${h.n}</p><h3 id="s-title">${h.t}</h3><div class="result"><div class="face" style="--c:${c}"><span class="stamp">${stamp}</span><p style="margin:0">${txt}</p></div></div><div class="sheet-row"><button class="btn sig" data-act="close">Готово</button></div>`;
+    return;
+  }
+  if (G.busy) { card.innerHTML = '<div class="grab"></div><h3 id="s-title">Лаборатория работает…</h3><div class="working"><i></i>Проверяем гипотезу</div>'; return; }
+  const h = HY.find(x => x.id === G.sel); if (!h) { sh.hidden = true; return; }
+  card.innerHTML = `<div class="grab"></div><p style="font:500 .72rem var(--f-m);color:var(--ink2);margin:0 0 4px">${h.c} · узел ${h.n}${h.legal ? ' · чувствительные данные' : ''}</p><h3 id="s-title">${h.t}</h3><p class="sub">${h.d}</p>
+    <div class="labs">${Object.entries(LAB).map(([k, l]) => `<button class="lab" data-lab="${k}" style="--l:${l.c}" aria-pressed="${G.lab === k}"><b>${l.n}</b><small>${l.d}</small></button>`).join('')}</div>
+    <p class="sub" style="margin:0 0 10px">Своя лаборатория — 1 час, чужая — 2 часа и без результата.${h.legal && !G.played.has('M1') ? ' Без М-01 проверка сотрудника стоит доверия.' : ''}</p>
+    <div class="sheet-row"><button class="btn sig" data-act="check"${G.lab && G.hours >= 1 ? '' : ' disabled'}>Проверить</button><button class="btn" data-act="close">Отмена</button></div>`;
+}
+const HOST = `<summary>Для ведущего: мотивы, источники, вопросы</summary>
+  <div class="tw"><table><tr><th>Слой</th><th>Что делает атакующий</th><th>Зачем</th><th>Как это видно</th></tr>
+  <tr><td>Месть</td><td>Бьёт в администратора, который нашёл устройство в деле 13</td><td>Убрать самого опасного для себя человека</td><td>Все «доказательства» на одного</td></tr>
+  <tr><td>Подделка</td><td>Строка журнала в новом формате, собранный скриншот, фото из лобби</td><td>Дать руководству повод уволить сразу</td><td>Формат новее даты, тени и шрифт, фон дела 5</td></tr>
+  <tr><td>Подача</td><td>Шлёт журналистам «эксклюзив» с одним настоящим файлом</td><td>Чтобы поверили остальному и давили на центр</td><td>Письмо за 12 часов до публикации</td></tr>
+  <tr><td>Раскол</td><td>Ждёт, что центр уволит своего</td><td>Команда перестаёт доверять друг другу</td><td>Руководство торопит с решением</td></tr></table></div>
+  <p>Подмешивание поддельных документов к настоящим — известный приём: в 2017 году в утечке переписки предвыборного штаба Эмманюэля Макрона, по данным французских властей и исследователей, были смешаны настоящие и поддельные файлы.</p>
+  <p class="say"><b>Начало</b>«Понедельник, 10:00. В новостях — „доказательства“ против нашего администратора. Руководство хочет уволить его сегодня. У вас 14 часов, 25 минут и три единицы доверия».</p>
+  <p class="say"><b>Половина времени</b>«Если сотрудник до сих пор один против обвинений, команда видит, что своих не защищают».</p>
+  <p class="say"><b>Победа</b>«Подделка разоблачена, сотрудник защищён. Но пока мы спорили со СМИ, атакующий написал нашему клиенту. Об этом эпизод 15».</p>
+  <ol><li>Начал ли игрок с оригинала журнала или с сотрудника?</li><li>Заметил ли, что формат строки новее даты?</li><li>Попался ли на увольнение?</li><li>Использовал ли нить досье, чтобы узнать автора?</li><li>Вопрос: почему одна настоящая деталь делает подделку убедительнее?</li><li>Вопрос: что центр сделал заранее, что помогло (ежедневные отпечатки)?</li></ol>`;
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-h],[data-lab],[data-m],[data-act],[data-v],[data-d]'); if (!t) return;
+  if (t.closest('#v-engineer,#v-player')) return;
+  if (t.dataset.h) { if (!G.over) { buzz(); openSheet(t.dataset.h); } }
+  else if (t.dataset.lab) { G.lab = t.dataset.lab; renderSheet(); }
+  else if (t.dataset.m) { buzz(); playM(t.dataset.m); }
+  else if (t.dataset.v !== undefined && t.closest('#d-vw')) {
+    const v = t.dataset.v; G.view = v;
+    if (!G.seen.has(v)) { G.seen.add(v); addLog('Вид', 'Открыт вид «' + VIEWS[v] + '».', 'info'); }
+    render();
+  }
+  else if (t.dataset.d) { const d = t.dataset.d, i = G.dsel.indexOf(d); if (i >= 0) G.dsel.splice(i, 1); else { if (G.dsel.length >= 2) G.dsel.shift(); G.dsel.push(d); } renderDos(); }
+  else if (t.dataset.act === 'check') {
+    G.busy = true; renderSheet(); buzz();
+    setTimeout(() => { G.busy = false; runCheck(); if (!G.last) closeSheet(); else { $('#sheet').hidden = false; renderSheet(); const b = $('#s-card .btn.sig'); if (b) b.focus(); } }, 650);
+  }
+  else if (t.dataset.act === 'close') closeSheet();
+  else if (t.dataset.act === 'concl') { G.concl = t.dataset.v; G.acts.push('Заключение ' + G.concl.slice(1)); addLog('Заключение', 'Выбрано заключение ' + G.concl.slice(1) + '.', conclOK() ? 'ok' : 'warn'); finish('win'); render(); }
+  else if (t.dataset.act === 'reset') { fresh(); render(); }
+  else if (t.dataset.act === 'copy') {
+    const ta = $('#d-prot'); if (!ta) return;
+    const sel = () => { ta.focus(); ta.select(); toast('Текст выделен. Скопируйте его вручную.'); };
+    try { navigator.clipboard.writeText(ta.value).then(() => toast('Протокол скопирован.'), sel); } catch (err) { sel(); }
+  }
+});
+$('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
+$('#d-link').addEventListener('click', linkDos);
+$('#h-reset').addEventListener('click', () => { fresh(); $('#sheet').hidden = true; render(); });
+$('#h-start').addEventListener('click', () => { if (G.over) return; G.run = !G.run; clearInterval(iv); if (G.run) iv = setInterval(tick, 1000); render(); });
+addEventListener('resize', () => requestAnimationFrame(drawThreads));
+$('#d-host').innerHTML = HOST;
+function simplify() {
+  G.simple = true; G.sel = null; G.lab = null;
+  addLog('Центр', 'Задача сужена до журнала и сотрудника. Новое задание: М-01, М-02, М-03.', 'warn');
+  toast('Центр сужает задачу. Это тоже прохождение.');
+}
+function finish(kind, why) {
+  G.over = kind; G.why = why || ''; G.run = false; G.pend = false; clearInterval(iv); iv = null;
+  toast(kind === 'win' ? 'Дело закрыто.' : 'Дело не закрыто.');
+}
+function check() {
+  if (G.over) return;
+  if (G.thr >= 6) finish('lose', 'Сотрудника уволили под давлением СМИ, команда расколота.');
+  else if (G.integ <= 0) finish('lose', 'Улики потеряны: выводы по ним уже не защитить.');
+  else if (G.trust <= 0) finish('lose', 'Доверие потеряно: телефоны сотрудников больше нельзя исследовать.');
+  else if (G.hours <= 0) finish('lose', 'Часы закончились. Давайте посмотрим, что мы узнали.');
+}
+function addThr(n, why) { G.thr = Math.min(6, G.thr + n); addLog('СМИ', why + ' Давление СМИ: ' + G.thr + ' из 6.', 'warn'); }
+function missStep() { G.streak++; if (G.streak >= 2 && !G.simple) simplify(); }
+function runCheck() {
+  if (G.over || !G.sel || !G.lab || G.hours < 1) return;
+  const h = HY.find(x => x.id === G.sel), labUsed = G.lab, own = [].concat(h.lab).includes(G.lab), cost = Math.min(own ? 1 : 2, G.hours);
+  G.hours -= cost; let miss = false; G.acts.push(h.c);
+  if (!own) { addLog(LAB[G.lab].n, `Лаборатория ничего не нашла по ${h.c}. Потрачено ${cost} ч.`, 'miss'); miss = true; }
+  else {
+    if (h.legal && !G.played.has('M1')) { G.trust--; addLog('Доверие', 'Сотрудника проверяли как подозреваемого до решения о процедуре: минус 1 доверие.', 'warn'); }
+    if (h.ok) {
+      G.conf.add(h.id); G.streak = 0; addLog(LAB[G.lab].n, `${h.c} подтверждена. ${h.r}`, 'ok');
+      (h.excl || []).forEach(x => { if (!G.rej.has(x)) { G.rej.add(x); addLog('Центр', `${codeOf(x)} снята.`, 'info'); } });
+      DOS.filter(d => d.after === h.id).forEach(d => addLog('Досье', `Добавлена карточка ${d.id}: ${d.t}.`, 'info'));
+      if (h.id === 'H10') addLog('Центр', 'Открыт узел У9 «Письмо журналистам». Появились связи Л-08 и Л-10.', 'info');
+    } else { G.rej.add(h.id); addLog(LAB[G.lab].n, `${h.c} не подтверждена. ${h.r}`, h.ins ? 'info' : 'miss'); miss = !h.ins; if (h.ins) G.streak = 0; }
+  }
+  G.last = { id: h.id, own, ok: own && !!h.ok, lab: labUsed, cost, ins: !!h.ins };
+  G.sel = null; G.lab = null;
+  if (miss) { addThr(1, 'Ложный след: новость расходится дальше.'); missStep(); }
+  check(); render();
+}
+function linkDos() {
+  if (G.over || G.dsel.length !== 2) return;
+  const [a, b] = G.dsel; G.dsel = [];
+  const rule = RULES.find(r => r.ids ? (r.ids.includes(a) && r.ids.includes(b)) : (r.any.includes(a) && r.any.includes(b)));
+  if (rule && G.keys.has(rule.k)) addLog('Досье', 'Эта связь уже найдена.', 'info');
+  else if (rule) { G.keys.add(rule.k); G.pairs.push([a, b]); G.streak = 0; addLog('Досье', `${a} + ${b}: ${rule.t}`, 'ok'); buzz(); toast('Нить натянута: ' + a + ' — ' + b); }
+  else { G.hours = Math.max(0, G.hours - 1); addLog('Досье', `${a} + ${b}: связи нет. Потерян 1 ч.`, 'miss'); missStep(); }
+  check(); render();
+}
+function playM(id) {
+  if (G.over || G.played.has(id)) return;
+  const m = MS.find(x => x.id === id);
+  if (isOut(id)) return;
+  if (m.needs && !G.conf.has(m.needs)) return;
+  if (m.decoy) {
+    G.played.add(id); G.trust -= 2; G.compl++; G.acts.push('М-10(!)');
+    addLog('Увольнение', 'Уволили невиновного. Атакующий получил ровно то, чего хотел: команда напугана, лучший специалист ушёл. Минус 2 доверия.', 'warn'); addThr(1, 'СМИ пишут: «центр признал вину».');
+    toast('Атакующий добился своего.'); check(); render(); return;
+  }
+  const miss = m.pre && m.pre.find(p => !G.played.has(p));
+  if (miss && m.v) {
+    const [code, text, pen] = m.v;
+    if (pen.h) G.hours = Math.max(0, G.hours - pen.h);
+    if (pen.t) G.trust -= pen.t;
+    if (pen.i) G.integ = Math.max(0, G.integ - pen.i);
+    G.compl++; G.acts.push(m.c + '(!)');
+    addLog('Осложнение ' + code, text + ' ' + [pen.h ? 'Минус ' + pen.h + ' ч' : '', pen.t ? 'минус ' + pen.t + ' доверие' : '', pen.i ? 'минус ' + pen.i + '% улик' : ''].filter(Boolean).join(', ') + '. Мера вернулась в руку.', 'warn');
+    toast('Осложнение ' + code + '.'); check(); render(); return;
+  }
+  G.played.add(id); G.acts.push(m.c);
+  addLog('Мера', `${m.c} ${m.t}: поставлено.`, 'ok');
+  if (id === 'M5' && !G.stopLog) { G.stopLog = true; G.thr = Math.max(0, G.thr - 1); addLog('СМИ', 'Центр показал факты: новость перестаёт расходиться.', 'info'); }
+  if (id === 'M6' && G.money === 100) addLog('Команда', 'Сотрудник получил поддержку и юриста.', 'ok');
+  if (!G.pend && reqOK()) { G.pend = true; addLog('Центр', 'Обязательные меры стоят. Нужно заключение: какое звено было первым.', 'info'); }
+  else check();
+  render();
+}
+function tick() {
+  if (!G.run || G.over) return;
+  G.left--; const el = 1500 - G.left;
+  if (!G.half && el >= 750) {
+    G.half = true; addLog('Таймер', 'Прошла половина времени. Осталось 12 минут 30 секунд.', 'info'); toast('Прошла половина времени. Осталось 12 минут 30 секунд.');
+    if (!G.played.has('M6')) { G.money = 40; addLog('Команда', 'Сотрудник полдня один против обвинений. Команда видит, что своих не защищают: доверие команды 40%.', 'warn'); toast('Команда теряет доверие.'); }
+  }
+  if (!G.over && !stopped() && el > 0 && el % 180 === 0) { addThr(1, 'Новость перепечатали ещё три издания.'); check(); }
+  if (!G.simple && !G.over && el >= 900 && G.conf.size === 0) simplify();
+  if (G.left <= 0 && !G.over) finish('lose', 'Время вышло. Давайте посмотрим, что мы узнали.');
+  render();
+}
+
+/* ---------- вкладки ---------- */
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const ROUTES = ['detective', 'engineer', 'player'];
+function route(name) {
+  const h = location.hash.slice(1), r = ROUTES.includes(name) ? name : (ROUTES.includes(h) ? h : 'detective');
+  ROUTES.forEach(x => { $('#v-' + x).hidden = x !== r; }); try { scrollTo(0, 0); } catch (err) { /* ok */ } if (r === 'detective') requestAnimationFrame(drawThreads);
+  $$('.tab').forEach(a => { if (a.dataset.r === r) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+}
+addEventListener('hashchange', () => route());
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#"]'); if (!a) return;
+  const n = a.getAttribute('href').slice(1); if (!ROUTES.includes(n)) return;
+  e.preventDefault(); route(n);
+  try { if (location.hash.slice(1) !== n) location.hash = n; } catch (err) { /* адрес можно не менять */ }
+});
+
+/* ---------- Инженер лаборатории ---------- */
+const LX = [['Дата в строке', 0], ['Формат строки', 1], ['Учётка', 1], ['Действие', 1], ['Ежедневный отпечаток', 1], ['Часовой пояс', 1]];
+const LXV = [['12.10.2026', '12.10.2026'], ['старый, текстовый', 'новый, с trace_id'], ['строки нет', 'администратор'], ['—', 'экспорт архива'], ['совпадает', 'строки в нём нет'], ['МСК', 'UTC+1']];
+const LDEC = ['Дата', 'Формат строки новее даты', 'Учётка'];
+const SPOTS = [
+  { n: 1, t: 'Шрифт сообщений', r: 'Из версии мессенджера, вышедшей позже даты на снимке.', x: 70, y: 40 },
+  { n: 2, t: 'Тени у пузырей', r: 'Разные у соседних сообщений: склейка.', x: 70, y: 90 },
+  { n: 3, t: 'Время сообщений', r: '14:02, 13:58, 14:05 — не по порядку.', x: 70, y: 140 },
+  { n: 4, t: 'Розетки на фото', r: 'Не такие, как в серверной центра.', x: 220, y: 50 },
+  { n: 5, t: 'Плитка на фото', r: 'Та же, что в лобби из дела 5.', x: 220, y: 100 },
+  { n: 6, t: 'Свет на фото', r: 'Тени лица и стены падают в разные стороны.', x: 220, y: 150 }
+];
+const CLAIMS = [{ t: '12 октября он выгрузил архив', a: 1 }, { t: 'Переписка с «покупателем»', a: 1 }, { t: 'Фото «у серверной»', a: 1 }, { t: 'Он нашёл устройство в деле 13', a: 0 }];
+const CV = ['Подтверждается', 'Опровергается'];
+const WHAT = ['Ограничить доступы по процедуре и поддержать', 'Уволить сегодня', 'Ничего не делать'];
+const SEAM = [
+  { q: 'Зачем в подделку добавлен один настоящий файл?', o: ['Случайно', 'Чтобы поверили остальному', 'Чтобы запутать журналистов'], a: 1 },
+  { q: 'Что спасло центр в этом деле?', o: ['Удача', 'Ежедневные отпечатки журналов', 'Знакомый журналист'], a: 1 },
+  { q: 'Как доказать, что строка журнала поддельная?', o: ['Спросить сотрудника', 'Сравнить с оригиналом и форматом на дату', 'Удалить строку'], a: 1 },
+  { q: 'Кому выгодно увольнение администратора?', o: ['Центру', 'Атакующему: тот нашёл его устройство', 'Журналистам'], a: 1 },
+  { q: 'Что делать с сотрудником до конца проверки?', o: ['Уволить для спокойствия', 'Ограничить доступы по процедуре, но не обвинять', 'Объявить виновным'], a: 1 },
+  { q: 'Как отвечать СМИ?', o: ['Молчать', 'Фактами: оригинал, формат, алиби', 'Обвинить журналистов'], a: 1 }
+];
+let E;
+function freshE() {
+  E = { hw: { sel: new Set(), pf: null, msg: '', done: false }, sw: { seen: new Set(), msg: '', done: false },
+    dt: { cl: {}, what: null, msg: '', done: false }, kn: { ans: {}, msg: '', done: false }, log: [] };
+}
+const eLog = t => { E.log.unshift(t); E.log = E.log.slice(0, 8); };
+const toggle = (set, i) => { if (set.has(i)) set.delete(i); else set.add(i); };
+function shotBench() {
+  let s = '<svg viewBox="0 0 300 180" role="img" aria-label="Скриншот и фото с шестью точками осмотра"><rect class="part" x="30" y="15" width="90" height="155" rx="12"/><rect class="part" x="160" y="25" width="120" height="140" rx="6"/>';
+  SPOTS.forEach(p => { s += `<g class="spot${E.sw.seen.has(p.n) ? ' seen' : ''}" data-act="spot" data-n="${p.n}" tabindex="0" role="button" aria-label="Точка ${p.n}: ${p.t}"><circle cx="${p.x}" cy="${p.y}" r="12"/><text x="${p.x}" y="${p.y + 4}">${p.n}</text></g>`; });
+  return s + '</svg>';
+}
+function renderE() {
+  const hw = E.hw;
+  $('#e-hw').innerHTML = '<small>Отметьте поля, где опубликованная строка расходится с оригиналом.</small>' + LX.map((r, i) => `<button class="rrow${hw.sel.has(i) ? ' seen' : ''}" data-act="lx" data-i="${i}" aria-pressed="${hw.sel.has(i)}"><span class="num">${hw.sel.has(i) ? '≠' : '·'}</span><span><b>${r[0]}</b><small>оригинал: ${LXV[i][0]} · публикация: ${LXV[i][1]}</small></span></button>`).join('') +
+    '<small>Какое расхождение доказывает подделку само по себе?</small><div class="chips">' + LDEC.map((p, i) => `<button class="chip" data-act="pf" data-i="${i}" aria-pressed="${hw.pf === i}">${p}</button>`).join('') + '</div>' +
+    '<div class="chips"><button class="chip" data-act="hwcheck">Проверить</button></div>' + (hw.msg ? `<p class="msg${hw.done ? ' ok' : ''}">${hw.msg}</p>` : '');
+  const sw = E.sw, all = sw.seen.size === SPOTS.length;
+  $('#e-sw').innerHTML = `<div class="svgbox">${shotBench()}</div>` + SPOTS.map(p => `<button class="rrow${sw.seen.has(p.n) ? ' seen' : ''}" data-act="spot" data-n="${p.n}"><span class="num">${p.n}</span><span><b>${p.t}</b><small>${sw.seen.has(p.n) ? p.r : 'не осмотрено'}</small></span></button>`).join('') +
+    (all && !sw.done ? '<div class="chips"><button class="chip" data-act="swv" data-v="1">Вывод: скриншот собран, фото из лобби</button><button class="chip" data-act="swv" data-v="0">Вывод: всё подлинное</button></div>' : '') +
+    (sw.msg ? `<p class="msg${sw.done ? ' ok' : ''}">${sw.msg}</p>` : '');
+  const dt = E.dt;
+  $('#e-dt').innerHTML = '<small>Публикация смешивает правду и ложь. Разберите каждое утверждение.</small>' + CLAIMS.map((c, i) => `<div class="swrow"><b>${i + 1}. ${c.t}</b><span class="chips">${CV.map((x, j) => `<button class="chip" data-act="cl" data-i="${i}" data-v="${j}" aria-pressed="${dt.cl[i] === j}">${x}</button>`).join('')}</span></div>`).join('') +
+    '<small>Что делать с сотрудником до конца проверки?</small><div class="chips">' + WHAT.map((w, i) => `<button class="chip" data-act="what" data-i="${i}" aria-pressed="${dt.what === i}">${w}</button>`).join('') + '</div>' +
+    '<div class="chips"><button class="chip" data-act="dtcheck">Проверить</button></div>' + (dt.msg ? `<p class="msg${dt.done ? ' ok' : ''}">${dt.msg}</p>` : '');
+  const kn = E.kn;
+  $('#e-cl').innerHTML = SEAM.map((l, i) => `<div class="swrow"><b>${i + 1}. ${l.q}</b><span class="chips">${l.o.map((o, j) => `<button class="chip" data-act="seam" data-i="${i}" data-v="${j}" aria-pressed="${kn.ans[i] === j}">${o}</button>`).join('')}</span></div>`).join('') +
+    '<div class="chips"><button class="chip" data-act="kncheck">Проверить</button></div>' + (kn.msg ? `<p class="msg${kn.done ? ' ok' : ''}">${kn.msg}</p>` : '');
+  const n = ['hw', 'sw', 'dt', 'kn'].filter(k => E[k].done).length;
+  $('#e-count').textContent = n + ' из 4';
+  $('#e-log').innerHTML = E.log.length ? E.log.map((t, i) => `<li><span class="n">${E.log.length - i}</span>${t}</li>`).join('') : '<li>Опытов ещё нет.</li>';
+  const rowO = (k, name, txt) => `<div class="done-row"><span class="tg ${E[k].done ? 'pro' : 'cln'}">${E[k].done ? 'готово' : 'ждёт'}</span><span><b>${name}.</b> ${E[k].done ? txt : 'вывод ещё не сделан.'}</span></div>`;
+  $('#e-out').innerHTML = rowO('hw', 'Журнал', 'пять расхождений, решающее — формат строки новее даты.') +
+    rowO('sw', 'Скриншот и фото', 'скриншот склеен, фото снято в лобби из дела 5.') +
+    rowO('dt', 'Алиби', 'три утверждения ложны, одно правдиво; сотрудника поддержать.') +
+    rowO('kn', 'Почерк', 'шесть вопросов о подделке закрыты.') +
+    (n === 4 ? '<p class="msg ok">Находки готовы. <a href="#detective">Передать сыщику</a></p>' : '');
+  renderProgress();
+}
+$('#v-engineer').addEventListener('click', e => {
+  const t = e.target.closest('[data-act]'); if (!t) return; const a = t.dataset.act, i = +t.dataset.i;
+  if (a === 'lx') { toggle(E.hw.sel, i); E.hw.msg = ''; }
+  else if (a === 'pf') { E.hw.pf = i; E.hw.msg = ''; }
+  else if (a === 'hwcheck') {
+    const exp = LX.map((r, k) => r[1] ? k : -1).filter(k => k >= 0), s = E.hw.sel;
+    const hit = exp.filter(k => s.has(k)).length, extra = [...s].filter(k => !LX[k][1]).length;
+    E.hw.done = hit === exp.length && !extra && E.hw.pf === 1;
+    E.hw.msg = E.hw.done ? 'Верно. Строку нельзя было записать в формате, которого ещё не существовало.' : `Расхождений найдено ${hit} из ${exp.length}${extra ? ', лишних ' + extra : ''}.` + (E.hw.pf === 1 ? '' : ' Что невозможно технически?');
+    eLog('Журнал: найдено ' + hit + ' из ' + exp.length + '.');
+  }
+  else if (a === 'spot') { const n = +t.dataset.n; if (E.sw.seen.has(n)) E.sw.seen.delete(n); else { E.sw.seen.add(n); eLog('Скриншот: точка ' + n + ' (' + SPOTS[n - 1].t + ').'); } E.sw.msg = ''; }
+  else if (a === 'swv') { if (t.dataset.v === '1') { E.sw.done = true; E.sw.msg = 'Верно. Каждая деталь по отдельности мелкая, вместе — явная склейка.'; eLog('Скриншот: вывод сделан.'); } else E.sw.msg = 'Посмотрите точки 1 и 5 ещё раз.'; }
+  else if (a === 'cl') { E.dt.cl[i] = +t.dataset.v; E.dt.msg = ''; }
+  else if (a === 'what') { E.dt.what = i; E.dt.msg = ''; }
+  else if (a === 'dtcheck') {
+    const ok = CLAIMS.filter((c, k) => E.dt.cl[k] === c.a).length;
+    E.dt.done = ok === CLAIMS.length && E.dt.what === 0;
+    E.dt.msg = E.dt.done ? 'Верно. Единственное правдивое — то, за что атакующий мстит. Сотрудника защищают, доступы ограничивают по общей процедуре.' : `Утверждений разобрано верно: ${ok} из ${CLAIMS.length}.` + (E.dt.what === 0 ? '' : ' Кому выгодно увольнение?');
+    eLog('Алиби: верно ' + ok + ' из ' + CLAIMS.length + '.');
+  }
+  else if (a === 'seam') { E.kn.ans[i] = +t.dataset.v; E.kn.msg = ''; }
+  else if (a === 'kncheck') {
+    const ok = SEAM.filter((l, k) => E.kn.ans[k] === l.a).length;
+    E.kn.done = ok === SEAM.length; E.kn.msg = E.kn.done ? 'Почерк подделки разобран.' : `Верно: ${ok} из ${SEAM.length}.`;
+    eLog('Почерк: верно ' + ok + ' из ' + SEAM.length + '.');
+  }
+  renderE();
+});
+$('#v-engineer').addEventListener('keydown', e => { const n = e.target.closest('.spot'); if (n && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); n.dispatchEvent(new MouseEvent('click', { bubbles: true })); } });
+$('#e-reset').addEventListener('click', () => { freshE(); renderE(); });
+
+/* ---------- Участник игры ---------- */
+const ROLES = [
+  { k: 'sy', n: 'Сыщик', s: 'отделяет правду от подделки', a: 'Сравнивает опубликованное с оригиналами, ищет автора по метаданным и не делает выводов о человеке раньше фактов.', tip: 'Опровергните «он выгрузил архив» — откроется проверка строки журнала.' },
+  { k: 'rz', n: 'Разработчик защиты', s: 'хранит оригиналы', a: 'Сохраняет оригиналы с отпечатками, проводит экспертизу метаданных, вводит водяные знаки.', tip: 'Сравнивать только с оригиналом, у которого есть отпечаток.' },
+  { k: 'kt', n: 'Конструктор угроз', s: 'работает в песочнице', a: 'Описывает учебные подделки: какие технические мелочи их выдают. Без инструментов.', tip: 'Подделку выдаёт то, чего в нужный день ещё не существовало.' },
+  { k: 'rc', n: 'Руководитель центра', s: 'защищает людей', a: 'Не даёт уволить сотрудника под давлением, отвечает СМИ фактами, объясняет команде происходящее.', tip: 'Уволить сейчас — сделать ровно то, чего хочет атакующий.' }
+];
+const CAT = [
+  { n: 'Повторный пароль', labs: ['dt', 'sw'], sign: 'Один секрет используется в нескольких сервисах.', def: 'Уникальные пароли, менеджер паролей, второй фактор.', ep: 4 },
+  { n: 'Подмена SIM', labs: ['dt'], sign: 'Номер вдруг оказывается на другой карте.', def: 'Блокировка переноса у оператора, не полагаться только на СМС.', ep: 4 },
+  { n: 'Социальная инженерия', labs: ['dt'], sign: 'Человека убеждают сделать действие сами: письмо, звонок «из поддержки».', def: 'Проверка звонящего по известному номеру, правило «сначала перезвони».', ep: 5 },
+  { n: 'Избыточные разрешения', labs: ['sw'], sign: 'Приложение просит больше, чем нужно для работы.', def: 'Минимальные права, периодический пересмотр.', ep: 4 },
+  { n: 'Устаревшее ПО', labs: ['sw', 'hw'], sign: 'Версия отстаёт от выпущенных исправлений.', def: 'Плановые обновления с проверкой после них.', ep: 3 },
+  { n: 'Лишнее доверенное устройство', labs: ['sw'], sign: 'В списке доверенных появилось незнакомое.', def: 'Регулярный просмотр списка, оповещения о новых.', ep: 4 },
+  { n: 'Открытая копия', labs: ['dt'], sign: 'Резервная копия доступна не только владельцу.', def: 'Шифрование копии, ограничение доступа.', ep: 4 },
+  { n: 'Утечка метаданных', labs: ['dt'], sign: 'Файлы несут время и место съёмки.', def: 'Очистка метаданных перед публикацией.', ep: 4 },
+  { n: 'Небезопасная сеть', labs: ['hw', 'sw'], sign: 'Работа через чужую открытую сеть.', def: 'Защищённое соединение, отказ от открытых сетей.', ep: 4 },
+  { n: 'Заводские настройки', labs: ['hw', 'sw'], sign: 'Устройство работает с настройками и паролем по умолчанию.', def: 'Смена настроек и пароля при вводе в работу.', ep: 1 },
+  { n: 'Физический доступ', labs: ['hw'], sign: 'Устройство побывало в чужих руках или порт доступен.', def: 'Пломбы, закрытые порты, учёт устройств.', ep: 4 },
+  { n: 'Побочный эффект обновления', labs: ['sw'], sign: 'Исправление включает лишнюю службу.', def: 'Копия, проверка после обновления, отключение лишнего.', ep: 3 },
+  { n: 'Открытая гостевая сеть', labs: ['sw', 'hw'], sign: 'Сеть без пароля, доступная каждому в радиусе сигнала.', def: 'Пароль, отдельная зона, ограничение по времени.', ep: 5 },
+  { n: 'Нет сегментации сети', labs: ['sw'], sign: 'Гости и устройства офиса видят друг друга.', def: 'Зоны «офис», «гости», «умные устройства», изоляция клиентов.', ep: 5 },
+  { n: 'Двойник точки доступа', labs: ['hw'], sign: 'Рядом работает сеть с тем же именем на другом канале.', def: 'Опись точек, сканирование эфира, защищённое подключение.', ep: 5 },
+  { n: 'Небезопасное умное устройство', labs: ['dt', 'sw'], sign: 'Розетка или лампа отправляет данные, объём которых не соответствует задаче.', def: 'Отдельная зона, запрет внешней связи, контроль трафика.', ep: 5 }
+,
+  { n: 'Двойник приложения', labs: ['sw', 'dt'], sign: 'Приложение с тем же именем и значком, но другой подписью и издателем.', def: 'Установка только из каталога центра, проверка подписи.', ep: 6 },
+  { n: 'Подменённый QR-код', labs: ['hw'], sign: 'Наклейка поверх настоящей ведёт на чужую страницу.', def: 'Защищённые таблички, осмотр, ссылки только с известного домена.', ep: 6 },
+  { n: 'Установка из неизвестного источника', labs: ['sw'], sign: 'Файл приложения скачан со страницы, а не из каталога.', def: 'Запрет установки из сторонних источников на рабочих телефонах.', ep: 6 }
+,
+  { n: 'Сумма безобидных утечек', labs: ['dt'], sign: 'Каждая утечка мелкая, но вместе они дают карту организации.', def: 'Смотреть на утечки вместе, считать, что уже известно атакующему.', ep: 7 },
+  { n: 'Внутренний источник', labs: ['dt', 'hw'], sign: 'Атакующий знает то, чего не было ни в одной утечке.', def: 'Закрытый круг, учёт, кто какие коды знает, второй фактор.', ep: 7 }
+,
+  { n: 'Сообщение по утёкшим контактам', labs: ['dt'], sign: 'Человеку пишут «от своих», зная его имя, роль и номер.', def: 'Правило: код и пароль никто не спрашивает. Проверка по известному каналу.', ep: 8 },
+  { n: 'Слабая процедура выдачи кодов', labs: ['hw', 'dt'], sign: 'Код раздают устно и не учитывают, кто его знает.', def: 'Учёт знающих, второй фактор, процедура подтверждения без ввода кода.', ep: 8 }
+,
+  { n: 'Подмена реквизитов в переписке', labs: ['dt', 'sw'], sign: 'Счёт в знакомой цепочке писем, но с новыми реквизитами и срочностью.', def: 'Проверка реквизитов по второму каналу, звонок по номеру из договора.', ep: 9 },
+  { n: 'Сброс пароля через поддержку', labs: ['dt'], sign: 'Звонок от имени сотрудника с просьбой срочно сбросить пароль.', def: 'Проверка личности по известному каналу, обратный звонок.', ep: 9 },
+  { n: 'Отвлекающая атака', labs: ['hw', 'dt'], sign: 'Шумное событие за минуты до тихого главного действия.', def: 'Разделять дежурство: кто-то всегда следит за деньгами и доступами.', ep: 9 }
+,
+  { n: 'Подделка голоса руководителя', labs: ['dt'], sign: 'Знакомый голос просит срочно и тайно, на вопросы вне сценария отвечает с паузой.', def: 'Кодовое слово, проверочный вопрос, личное подтверждение крупных платежей.', ep: 10 },
+  { n: 'Перехват второго канала', labs: ['hw', 'dt'], sign: 'Обратный звонок попадает не туда: переадресация или подмена номера у оператора.', def: 'Канал, который атакующий не контролирует: лично, через помощника, через кодовое слово.', ep: 10 },
+  { n: 'Открытый календарь руководителя', labs: ['sw'], sign: 'По календарю видно, когда руководитель недоступен.', def: 'Закрыть общий доступ, показывать только «занят».', ep: 10 }
+,
+  { n: 'Непрямая инъекция указаний в ИИ', labs: ['sw', 'dt'], sign: 'Помощник выполняет то, что было спрятано в письме или документе, а не то, что просил человек.', def: 'Внешнее содержимое — только данные; действия с подтверждением; проверка учебными письмами.', ep: 12 },
+  { n: 'Отравление базы знаний ИИ', labs: ['dt'], sign: 'Помощник уверенно ссылается на документ, которого не утверждал никто из своих.', def: 'Проверка человеком всего, что попадает в базу знаний; отметка источника.', ep: 12 },
+  { n: 'Избыточные полномочия ИИ‑агента', labs: ['sw'], sign: 'Помощник может отправлять, платить и читать больше, чем нужно для его задачи.', def: 'Минимальные права, подтверждение каждого действия наружу.', ep: 12 },
+  { n: 'Утечка через ИИ‑помощника', labs: ['dt'], sign: 'Внутренние документы оказываются в ответах наружу.', def: 'Помощнику не дают доступ к тому, что нельзя показать отправителю письма.', ep: 12 },
+  { n: 'Слепое доверие к ответу ИИ', labs: ['dt'], sign: 'Реквизиты, цифры и правила берут из сводки без сверки с источником.', def: 'Помощник подсказывает, а решения принимаются по первоисточнику.', ep: 12 }
+,
+  { n: 'Слабое звено подрядчика', labs: ['sw', 'dt'], sign: 'Доступ к вам или к вашим поставщикам идёт через того, кто их обслуживает.', def: 'Реестр подрядчиков, доступ по расписанию и с подтверждением, требования к их защите.', ep: 11 },
+  { n: 'Общая учётка без второго фактора', labs: ['sw'], sign: 'Одним паролем пользуется вся команда, а уволенные его помнят.', def: 'Личные учётки, второй фактор, отзыв доступа при увольнении.', ep: 11 },
+  { n: 'Забытые вложения в тикетах', labs: ['dt'], sign: 'Сканы документов годами лежат в закрытых заявках.', def: 'Срок хранения вложений, запрет пересылать документы в тикетах.', ep: 11 }
+,
+  { n: 'Забытое устройство', labs: ['hw', 'sw'], sign: 'Сервер «списан на бумаге», но включён, без обновлений и вне учёта.', def: 'Инвентаризация, реальное отключение списанного, проверка серверной.', ep: 13 },
+  { n: 'Подключённое чужое устройство', labs: ['hw'], sign: 'Посторонний модуль в разъёме со своей связью.', def: 'Пломбы на разъёмах, осмотр стоек, контроль эфира в серверной.', ep: 13 },
+  { n: 'Двойное вымогательство', labs: ['dt', 'sw'], sign: 'Шифрование плюс угроза публикации и короткий срок.', def: 'Отделённые копии, проверка образцов, уведомление регулятора и клиентов, без переговоров вслепую.', ep: 13 }
+,
+  { n: 'Подброшенные улики', labs: ['dt', 'sw'], sign: 'Настоящие файлы смешаны с поддельными, а «доказательства» указывают на одного человека.', def: 'Оригиналы с отпечатками, проверка формата и метаданных, презумпция невиновности.', ep: 14 },
+  { n: 'Давление через СМИ', labs: ['dt'], sign: '«Эксклюзив» приходит журналистам раньше, чем центр узнаёт о публикации.', def: 'Готовый порядок ответа: факты, известные каналы, без спешки с выводами о людях.', ep: 14 }
+];
+const STEPS = [
+  ['Дело', 'Понедельник, 10:00: «доказательства» против администратора в публикации. Руководство хочет уволить его сегодня.'],
+  ['Не спешить', 'М-01: не увольнять до проверки, доступы — по общей процедуре. Это защищает и центр, и человека.'],
+  ['Оригинал', 'Проверьте Г-02 «он выгрузил архив». Опровержение откроет проверку строки журнала.'],
+  ['Подделка', 'Виды «Журнал» и «Скриншот», нить досье для фото и метаданных.'],
+  ['Ответ', 'Заявление для СМИ с фактами останавливает рост давления. Поддержку сотруднику — до половины времени.'],
+  ['Заключение', 'Кто подделал, зачем и что с сотрудником.']
+];
+const QZ = [
+  { q: 'Руководство требует уволить сотрудника сегодня. Ваш шаг?', o: ['Уволить', 'Не увольнять до проверки, ограничить доступы по процедуре', 'Отправить в отпуск без объяснений'], r: 1, f: 'Презумпция невиновности и порядок.' },
+  { q: 'Строка журнала в новом формате с датой до введения формата. Это?', o: ['Ошибка журнала', 'Доказательство подделки', 'Неважно'], r: 1, f: 'Такую строку нельзя было записать в тот день.' },
+  { q: 'Зачем атакующий добавил один настоящий файл?', o: ['Случайно', 'Чтобы поверили подделке', 'Чтобы помочь центру'], r: 1, f: 'Правда — лучшая упаковка для лжи.' },
+  { q: 'Как найти автора подделки?', o: ['По имени в новостях', 'По метаданным файла и сравнению с делом 12', 'Никак'], r: 1, f: 'Одинаковые метаданные — один автор.' },
+  { q: 'Как отвечать журналистам?', o: ['Молчать', 'Фактами и через известный канал', 'Удалить публикацию'], r: 1, f: 'Факты останавливают давление.' },
+  { q: 'Что заранее помогло центру?', o: ['Ежедневные отпечатки журналов', 'Камера в лобби', 'Ничего'], r: 0, f: 'Неизменяемый оригинал — главный аргумент.' }
+];
+const EPS = [
+  ['Срочный платёж', 'Подмена реквизитов, сброс пароля через поддержку и отвлечение на принтерах.', 'готов'],
+  ['Голос директора', 'Подделка голоса, открытый календарь и перехваченный второй канал.', 'готов'],
+  ['Поставщик поставщика', 'Общая учётка подрядчика: откуда данные для дела 10 и путь для дела 12.', 'готов'],
+  ['Помощник, который слушает чужих', 'Скрытые указания для ИИ‑помощника, отравленная база знаний и лишние права.', 'готов'],
+  ['Двойное вымогательство', 'Шифрование забытого сервера, блеф с объёмом и устройство из дела 7.', 'готов'],
+  ['Подброшенные улики', 'Подделка против администратора, давление СМИ и защита своего.', 'готов'],
+  ['Данные клиента', 'Атакующий пишет клиенту центра от его имени. Кто отвечает?', 'скоро'],
+  ['Последний счёт', 'Финал второго сезона: атакующий раскрывает себя.', 'скоро']
+];
+const MODES = [
+  ['Дело', 'Кооператив на 1–4 игроков. Эпизоды идут по порядку, лаборатории работают параллельно.'],
+  ['Разбор', 'Соло. Короткие учебные дела с обязательной веткой упрощения.'],
+  ['Дуэль', 'Две команды. Конструкторы собирают вымышленную цепочку, защитники восстанавливают её по следам.'],
+  ['Сезон центра', 'Асинхронное соревнование центров по рейтингу защищённости.']
+];
+const LABN = { hw: 'Аппаратная', sw: 'Программная', dt: 'Данные' };
+const P = { role: 'sy', step: 0, ep: 5, mode: 0, qa: {}, cf: 'all', cat: 0 };
+function renderProgress() {
+  const el = $('#p-prog'); if (!el) return;
+  const d = !G.over ? 'не закрыто' : G.over === 'lose' ? 'дело не закрыто' : (G.simple ? 'закрыто с упрощением' : 'закрыто') + ', ' + stars() + ' из 3';
+  const labs = ['hw', 'sw', 'dt', 'kn'].filter(k => E[k].done).length;
+  const score = Object.keys(P.qa).filter(i => P.qa[i] === QZ[i].r).length;
+  el.innerHTML = `<div class="done-row"><span class="tg ${G.over === 'win' ? 'pro' : 'cln'}">Сыщик</span><span>${d}. Доверие ${G.trust} из 3, улики ${G.integ}%, доверие команды ${G.money}%, давление СМИ ${G.thr} из 6, часов ${G.hours} из 14</span></div><div class="done-row"><span class="tg ${labs === 4 ? 'pro' : 'cln'}">Инженер</span><span>опытов готово: ${labs} из 4</span></div><div class="done-row"><span class="tg ${Object.keys(P.qa).length === QZ.length ? 'pro' : 'cln'}">Проверка</span><span>верных ответов: ${score} из ${QZ.length}</span></div>`;
+}
+function renderP() {
+  $('#p-roles').innerHTML = ROLES.map(r => `<button class="rc" data-pr="${r.k}" aria-pressed="${P.role === r.k}"><b>${r.n}</b><small>${r.s}</small></button>`).join('');
+  const ro = ROLES.find(x => x.k === P.role);
+  $('#p-rdet').innerHTML = `<p><b>${ro.n}.</b> ${ro.a}</p><p><small>Совет: ${ro.tip}</small></p>`;
+  $('#p-cf').innerHTML = [['all', 'Все']].concat(Object.entries(LABN)).map(([k, v]) => `<button class="chip" data-pf="${k}" aria-pressed="${P.cf === k}">${v}</button>`).join('');
+  const list = CAT.map((c, i) => [c, i]).filter(([c]) => P.cf === 'all' || c.labs.includes(P.cf));
+  if (!list.some(([, i]) => i === P.cat)) P.cat = list.length ? list[0][1] : 0;
+  $('#p-cat').innerHTML = list.map(([c, i]) => `<button class="cat" data-pc="${i}" aria-pressed="${P.cat === i}"><b>${c.n}</b><small>${c.labs.map(l => LABN[l]).join(', ')}</small></button>`).join('');
+  const c = CAT[P.cat];
+  $('#p-cdet').innerHTML = `<p><b>${c.n}</b></p><p>Как проявляется: ${c.sign}</p><p>Как защищаются: ${c.def}</p><p><small>Встречается в эпизоде ${c.ep}</small></p>`;
+  $('#p-steps').innerHTML = STEPS.map((s, i) => `<button class="stp" data-ps="${i}"${i === P.step ? ' aria-current="step"' : ''}>${i + 1}. ${s[0]}</button>`).join('');
+  $('#p-sdet').innerHTML = `<p><b>${STEPS[P.step][0]}.</b> ${STEPS[P.step][1]}</p>`;
+  $('#p-quiz').innerHTML = QZ.map((q, qi) => {
+    const a = P.qa[qi], done = a !== undefined;
+    return `<div class="q"><p>${qi + 1}. ${q.q}</p>${q.o.map((o, oi) => `<button class="opt${done && oi === q.r ? ' right' : ''}${done && a === oi && oi !== q.r ? ' wrong' : ''}" data-pq="${qi}" data-po="${oi}"${done ? ' disabled' : ''}>${o}</button>`).join('')}${done ? `<small>${a === q.r ? 'Верно. ' : 'Не совсем. '}${q.f}</small>` : ''}</div>`;
+  }).join('') + (Object.keys(P.qa).length ? '<button class="chip" data-pq-reset="1">Пройти заново</button>' : '');
+  $('#p-eps').innerHTML = EPS.map((e, i) => `<button class="ep${e[2] === 'скоро' ? ' soon' : ''}" data-pe="${i}" aria-current="${i === P.ep}" aria-label="Эпизод ${i + 9}">${i + 9}</button>`).join('');
+  const ep = EPS[P.ep];
+  $('#p-edet').innerHTML = `<p><b>${ep[0]}</b> <span class="tg ${ep[2] === 'готов' ? 'pro' : 'cln'}">${ep[2]}</span></p><p><small>${ep[1]}</small></p>`;
+  $('#p-modes').innerHTML = MODES.map((m, i) => `<button class="chip" data-pm="${i}" aria-pressed="${i === P.mode}">${m[0]}</button>`).join('');
+  $('#p-mdet').innerHTML = `<p>${MODES[P.mode][1]}</p><p><small>На столе сейчас играется режим «Дело».</small></p>`;
+  renderProgress();
+}
+$('#v-player').addEventListener('click', e => {
+  const t = e.target.closest('[data-pr],[data-pf],[data-pc],[data-ps],[data-pq],[data-pq-reset],[data-pe],[data-pm]'); if (!t) return;
+  if (t.dataset.pr) P.role = t.dataset.pr;
+  else if (t.dataset.pf) P.cf = t.dataset.pf;
+  else if (t.dataset.pc !== undefined) P.cat = +t.dataset.pc;
+  else if (t.dataset.ps) P.step = +t.dataset.ps;
+  else if (t.dataset.pq !== undefined) P.qa[t.dataset.pq] = +t.dataset.po;
+  else if (t.dataset.pqReset) P.qa = {};
+  else if (t.dataset.pe) P.ep = +t.dataset.pe;
+  else if (t.dataset.pm) P.mode = +t.dataset.pm;
+  renderP();
+});
+$('#p-prev').addEventListener('click', () => { P.step = (P.step + STEPS.length - 1) % STEPS.length; renderP(); });
+$('#p-next').addEventListener('click', () => { P.step = (P.step + 1) % STEPS.length; renderP(); });
+
+/* ---------- запуск ---------- */
+freshE(); fresh(); renderP(); renderE(); render();
+route();
+})();
+</script>
+
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>window.KONTUR_SCENE=14;</script>
+<script src="tg.js"></script>
+</body>
+</html>
