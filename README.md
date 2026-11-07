@@ -20,7 +20,7 @@
 - **Сезон 3 «Покупатель» (17–24):** рынок за ним, посредник «Оценщик»: покупатель, тихий пакет, камера во дворе, машина без ключа, сорок уведомлений, чужой ноутбук, идеальный кандидат, обмен (финал).
 - **Сезон 4 «Автомат» (25–32):** атаки и защита в эпоху ИИ: письма без ошибок, подделка голоса и лица, помощник с ключами, чужая модель, придуманный пакет, данные в чате, бот с обещаниями и финал «Человек в контуре».
 
-Сезон 3 подробнее: [materials/season-3-concept.md](materials/season-3-concept.md). Сезон 4 «Автомат» (закончен, сцены 25–32 готовы): [materials/season-4-concept.md](materials/season-4-concept.md), сцены и карточки — [materials/season-4/](materials/season-4/). Сезон 5 «Долгая игра» (в работе, сцены 33–36 готовы; эпизоды 33–40): [materials/season-5-concept.md](materials/season-5-concept.md), сцены и карточки — [materials/season-5/](materials/season-5/).
+Сезон 3 подробнее: [materials/season-3-concept.md](materials/season-3-concept.md). Сезон 4 «Автомат» (закончен, сцены 25–32 готовы): [materials/season-4-concept.md](materials/season-4-concept.md), сцены и карточки — [materials/season-4/](materials/season-4/). Сезон 5 «Долгая игра» (в работе, сцены 33–37 готовы; эпизоды 33–40): [materials/season-5-concept.md](materials/season-5-concept.md), сцены и карточки — [materials/season-5/](materials/season-5/).
 
 ## Правила проекта
 
