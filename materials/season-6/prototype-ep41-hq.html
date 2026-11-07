@@ -1,0 +1,495 @@
+<title>Штаб «Меридиан»</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Концепт: операционный штаб заказчика. Слева люди «Меридиана», в центре работа центра, справа лента штаба. */
+:root{
+  --bg:#e6ebf0;--panel:#f6f8fa;--panel2:#dde4ea;--ink:#13202b;--ink2:#566673;--line:#c3cdd6;
+  --accent:#0b6e6e;--on-accent:#ffffff;--warn:#b8460f;--ok:#1b7f4b;--bad:#b42318;
+  --hw:#0e7490;--sw:#4f46e5;--dt:#b4235e;--tint:#e1ecee;--shadow:0 1px 0 rgba(19,32,43,.06),0 8px 22px rgba(19,32,43,.07);
+  --f-d:'IBM Plex Sans Condensed','Arial Narrow',system-ui,sans-serif;--f-b:'IBM Plex Sans',system-ui,sans-serif;--f-m:'IBM Plex Mono',ui-monospace,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0c141b;--panel:#131e27;--panel2:#1b2935;--ink:#e4ebf0;--ink2:#93a4b1;--line:#27384a;
+  --accent:#3cc2b8;--on-accent:#062523;--warn:#f59e5b;--ok:#4cc38a;--bad:#f87171;
+  --hw:#4cc2e0;--sw:#a5a0ff;--dt:#f58bb5;--tint:#17303a;--shadow:0 1px 0 rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.35);color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c141b;--panel:#131e27;--panel2:#1b2935;--ink:#e4ebf0;--ink2:#93a4b1;--line:#27384a;
+  --accent:#3cc2b8;--on-accent:#062523;--warn:#f59e5b;--ok:#4cc38a;--bad:#f87171;
+  --hw:#4cc2e0;--sw:#a5a0ff;--dt:#f58bb5;--tint:#17303a;--shadow:0 1px 0 rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.35);color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-b);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:14px 90px}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.app{max-width:1500px;margin:0 auto;display:grid;gap:12px}
+h1,h2,h3{font-family:var(--f-d);margin:0;text-wrap:balance}
+.mono{font-family:var(--f-m);font-variant-numeric:tabular-nums}
+/* верхняя панель */
+.top{display:grid;gap:10px;grid-template-columns:1fr;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow)}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand b{font:700 20px var(--f-d);letter-spacing:.02em}
+.brand span{color:var(--ink2);font-size:13px}
+.hud{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.m{background:var(--panel2);border-radius:10px;padding:7px 9px;min-width:0}
+.m small{display:block;color:var(--ink2);font:600 10.5px var(--f-d);text-transform:uppercase;letter-spacing:.09em}
+.m .v{font:500 16px var(--f-m);white-space:nowrap}
+.bar{height:5px;border-radius:3px;background:var(--line);margin-top:5px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .4s}
+.bar.warn i{background:var(--warn)}.bar.bad i{background:var(--bad)}
+.pips{display:flex;gap:4px;margin-top:6px}.pips i{flex:1;height:6px;border-radius:3px;background:var(--line)}
+.pips i.on{background:var(--accent)}.pips.risk i.on{background:var(--warn)}.pips.risk i.hot{background:var(--bad)}
+/* колонки */
+.cols{display:grid;gap:12px;grid-template-columns:minmax(0,1fr)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;min-width:0;display:none}
+.panel>h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink2);margin-bottom:10px}
+[data-tab=feed] .p-feed,[data-tab=team] .p-team,[data-tab=hyp] .p-hyp,[data-tab=mea] .p-mea,[data-tab=dos] .p-dos,[data-tab=fin] .p-fin{display:block}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:grid;grid-template-columns:repeat(6,1fr);background:var(--panel);border-top:1px solid var(--line);padding:6px max(6px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
+.tabs button{background:none;border:0;border-radius:8px;padding:8px 2px;font:600 12px var(--f-d);letter-spacing:.04em;color:var(--ink2);text-transform:uppercase}
+.tabs button[aria-selected=true]{background:var(--tint);color:var(--accent)}
+.tabs .n{display:block;font:500 10px var(--f-m);color:var(--ink2)}
+@media (min-width:1100px){
+  body{padding-bottom:24px}
+  .cols{grid-template-columns:270px minmax(0,1fr) 360px;align-items:start}
+  .p-feed,.p-team{display:block}
+  [data-tab=feed] .p-hyp,[data-tab=team] .p-hyp{display:block}
+  .tabs{position:static;border:1px solid var(--line);border-radius:14px;grid-template-columns:repeat(4,1fr);padding:6px}
+  .tabs .t-feed,.tabs .t-team{display:none}
+  .p-team{grid-column:1}
+  .p-feed{grid-column:3;position:sticky;top:12px}
+  .cmid{grid-column:2}
+  .hud{grid-template-columns:repeat(5,minmax(110px,1fr))}
+  .top{grid-template-columns:1fr auto;align-items:center}
+  .feedscroll{max-height:calc(100vh - 240px);overflow:auto}
+}
+.cmid{display:grid;gap:12px}
+/* люди */
+.person{display:grid;grid-template-columns:44px 1fr;gap:10px;padding:8px 0;border-top:1px solid var(--line);align-items:center}
+.person:first-of-type{border-top:0}
+.person b{display:block;font:600 14px var(--f-d)}
+.person small{display:block;color:var(--ink2);font-size:12px;line-height:1.3}
+.mood{display:inline-block;margin-top:3px;font:600 10.5px var(--f-d);text-transform:uppercase;letter-spacing:.07em;color:var(--ink2)}
+.mood.hi{color:var(--ok)}.mood.lo{color:var(--bad)}
+.you{font:600 10px var(--f-d);letter-spacing:.07em;text-transform:uppercase;background:var(--accent);color:var(--on-accent);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:1px}
+.av{border-radius:50%;display:block}
+/* лента */
+.msg{display:grid;grid-template-columns:34px 1fr;gap:9px;margin-bottom:12px}
+.msg .who{font:600 12.5px var(--f-d);letter-spacing:.02em}
+.msg .who span{color:var(--ink2);font:500 11px var(--f-m);margin-left:6px}
+.msg p{margin:2px 0 0;background:var(--panel2);border-radius:4px 12px 12px 12px;padding:7px 10px}
+.sys{margin:0 0 12px;padding:8px 11px;border-radius:10px;background:var(--tint);font-size:13.5px}
+.sys b{font:700 11px var(--f-d);letter-spacing:.09em;text-transform:uppercase;display:block;color:var(--accent);margin-bottom:2px}
+.sys.warn{background:color-mix(in srgb,var(--warn) 14%,var(--panel))}.sys.warn b{color:var(--warn)}
+.sys.bad{background:color-mix(in srgb,var(--bad) 14%,var(--panel))}.sys.bad b{color:var(--bad)}
+.sys.good{background:color-mix(in srgb,var(--ok) 14%,var(--panel))}.sys.good b{color:var(--ok)}
+.hintrow{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+/* кнопки */
+.btn{background:var(--accent);color:var(--on-accent);border:0;border-radius:9px;padding:9px 14px;font:600 14px var(--f-d);letter-spacing:.03em}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+/* карточки гипотез и мер */
+.list{display:grid;gap:8px}
+.card{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--panel);display:grid;gap:8px}
+.card.open{border-color:var(--accent);box-shadow:var(--shadow)}
+.card.ok{background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.card.lock{opacity:.6}
+.card .hd{display:flex;gap:10px;align-items:flex-start;width:100%;background:none;border:0;padding:0;text-align:left}
+.code{font:500 12px var(--f-m);background:var(--panel2);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.st{margin-left:auto;font:600 10.5px var(--f-d);text-transform:uppercase;letter-spacing:.08em;color:var(--ink2);white-space:nowrap}
+.st.ok{color:var(--ok)}.st.no{color:var(--bad)}
+.card .tx{flex:1;min-width:0}
+.labs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.lab{border:1.5px solid var(--line);background:var(--panel);border-radius:9px;padding:7px 6px;font:600 12.5px var(--f-d);text-align:center;line-height:1.2}
+.lab[aria-pressed=true]{border-color:currentColor;background:color-mix(in srgb,currentColor 12%,var(--panel))}
+.lab.hw{color:var(--hw)}.lab.sw{color:var(--sw)}.lab.dt{color:var(--dt)}
+.need{font-size:12.5px;color:var(--ink2)}
+.res{font-size:13.5px;color:var(--ink2)}
+/* нити */
+.dosg{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(210px,1fr))}
+.dos{border:1.5px solid var(--line);border-radius:10px;padding:9px 11px;text-align:left;background:var(--panel);font-size:13.5px;display:grid;gap:3px}
+.dos small{font:600 10.5px var(--f-d);letter-spacing:.08em;text-transform:uppercase;color:var(--ink2)}
+.dos[aria-pressed=true]{border-color:var(--accent);background:var(--tint)}
+.dos.hide{display:none}
+.thread{border-radius:10px;padding:8px 11px;background:var(--tint);margin-top:8px;font-size:13.5px}
+.map{width:100%;height:auto;max-height:340px;margin-bottom:10px}
+.map text{font:600 11px var(--f-d);fill:var(--ink)}
+.map .nd{fill:var(--panel2);stroke:var(--line);stroke-width:1.5}
+.map .nd.on{fill:var(--tint);stroke:var(--accent)}
+.map .ed{stroke:var(--line);stroke-width:1.5}.map .ed.on{stroke:var(--accent);stroke-width:2.4}
+/* заключение */
+.opt{display:block;width:100%;text-align:left;border:1.5px solid var(--line);background:var(--panel);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.opt[aria-pressed=true]{border-color:var(--accent);background:var(--tint)}
+/* окна */
+#ov{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--bg) 80%,transparent);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+#ov.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px;max-width:640px;width:100%;display:grid;gap:12px}
+.modal h2{font-size:24px}
+.sp{display:grid;grid-template-columns:72px 1fr;gap:14px;align-items:start}
+.bubble{background:var(--panel2);border-radius:4px 14px 14px 14px;padding:12px 14px;font-size:16px}
+.who2 b{font:700 15px var(--f-d)}.who2 span{color:var(--ink2);font-size:12.5px;margin-left:6px}
+.dots{display:flex;gap:4px}.dots i{width:18px;height:4px;border-radius:2px;background:var(--line)}.dots i.on{background:var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:6px 12px;font:600 13px var(--f-d)}
+.chip[aria-pressed=true]{border-color:var(--accent);background:var(--tint);color:var(--accent)}
+.stars{font-size:34px;letter-spacing:6px;color:var(--warn)}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.delta{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:14px}
+.delta .up{color:var(--ok)}.delta .dn{color:var(--bad)}
+.kick{font:600 11px var(--f-d);letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.sub{color:var(--ink2);font-size:14px}
+ul.tight{margin:0;padding-left:18px;display:grid;gap:4px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:520px){.hud{grid-template-columns:repeat(3,minmax(0,1fr))}.labs{grid-template-columns:1fr}.sp{grid-template-columns:56px 1fr}}
+</style>
+
+<div class="app" id="app" data-tab="hyp">
+  <header class="top">
+    <div class="brand"><b>Центр «Контур» × «Меридиан»</b><span class="mono">Сезон 6 · эпизод 41 · «Общая учётная запись»</span></div>
+    <div class="hud" id="hud"></div>
+  </header>
+  <div class="cols">
+    <section class="panel p-team" id="p-team"></section>
+    <div class="cmid">
+      <nav class="tabs" id="tabs" role="tablist"></nav>
+      <section class="panel p-hyp" id="p-hyp"></section>
+      <section class="panel p-mea" id="p-mea"></section>
+      <section class="panel p-dos" id="p-dos"></section>
+      <section class="panel p-fin" id="p-fin"></section>
+    </div>
+    <section class="panel p-feed" id="p-feed"></section>
+  </div>
+</div>
+<div id="ov" role="dialog" aria-modal="true"></div>
+
+<script>
+'use strict';
+/* ───────── люди ───────── */
+const CH = {
+  bel:{n:'Сергей Беляев',r:'Директор по операциям',s:'Операции',av:{skin:'#e3b08a',hair:'#2a2a2a',hs:'short',shirt:'#37506b',bg:'#c9d6e2'}},
+  erm:{n:'Лариса Ермакова',r:'Руководитель бизнес-процессов',s:'Бизнес-процессы',av:{skin:'#f0c9a8',hair:'#7a4b2e',hs:'bun',glasses:1,shirt:'#6b5b95',bg:'#e1d9ee'}},
+  has:{n:'Тимур Хасанов',r:'Руководитель поддержки клиентов',s:'Поддержка клиентов',av:{skin:'#d3a075',hair:'#1c1c1c',hs:'short',shirt:'#c26a3d',bg:'#f1dccb'}},
+  orl:{n:'Павел Орлов',r:'Руководитель логистики',s:'Логистика',av:{skin:'#ebc09a',hair:'#5a4632',hs:'side',shirt:'#3f7d5b',bg:'#d3e6da'}},
+  mel:{n:'Галина Мельник',r:'Начальник склада',s:'Склад',av:{skin:'#e9be9b',hair:'#a9a9a9',hs:'short',shirt:'#d4a017',bg:'#f2e6bf'}},
+  vor:{n:'Артём Воронов',r:'ИТ: архитектор систем',s:'ИТ: архитектор',av:{skin:'#edc7a4',hair:'#3a2a1e',hs:'short',glasses:1,beard:1,shirt:'#2f5d8a',bg:'#cfe0ef'}},
+  sed:{n:'Ирина Седова',r:'ИТ: кибербезопасность',s:'ИТ: безопасность',av:{skin:'#f1cfb2',hair:'#141414',hs:'long',shirt:'#1f2933',bg:'#d5dbe2'}},
+  kov:{n:'Денис Ковалёв',r:'ИТ: приложения',s:'ИТ: приложения',av:{skin:'#ddb08a',hair:'#c96a2c',hs:'messy',shirt:'#8b3fd1',bg:'#e4d6f4'}},
+  arh:{n:'Архивариус',r:'Центр «Контур»',s:'Центр',av:{skin:'#d8b590',hair:'#e6e6e6',hs:'bun',glasses:1,shirt:'#5c4b37',bg:'#e6dccd'}}
+};
+const TEAM=['bel','erm','has','orl','mel','vor','sed','kov'];
+function av(id,sz){
+  const s=CH[id].av,h=s.hair;let back='',front='';
+  if(s.hs==='long'){back=`<path d="M17 38c-2-17 6-27 15-27s17 10 15 27c0 6-2 11-5 13V32H22v19c-3-2-5-7-5-13z" fill="${h}"/>`;front=`<path d="M20 30c0-9 5-14 12-14s12 5 12 14c-4-5-8-6-12-6s-8 1-12 6z" fill="${h}"/>`}
+  else if(s.hs==='bun'){back=`<circle cx="32" cy="11" r="5.5" fill="${h}"/>`;front=`<path d="M20 31c0-10 5-15 12-15s12 5 12 15c-4-6-8-8-12-8s-8 2-12 8z" fill="${h}"/>`}
+  else if(s.hs==='side'){front=`<path d="M20 31c0-11 6-16 13-16 6 0 11 5 11 16-2-5-5-8-9-9-5 1-10 4-15 9z" fill="${h}"/>`}
+  else if(s.hs==='messy'){front=`<path d="M19 32c-2-10 3-19 13-19s15 9 13 19c-2-4-4-7-6-8l-3 3-3-4-4 4-3-3c-3 1-5 4-7 8z" fill="${h}"/>`}
+  else{front=`<path d="M20 31c0-11 6-16 12-16s12 5 12 16c-3-6-7-9-12-9s-9 3-12 9z" fill="${h}"/>`}
+  const gl=s.glasses?`<g fill="none" stroke="#1b1b1b" stroke-width="1.4"><rect x="23.5" y="28" width="7.5" height="6" rx="2"/><rect x="33" y="28" width="7.5" height="6" rx="2"/><path d="M31 31h2"/></g>`:'';
+  const bd=s.beard?`<path d="M22 36c0 9 4 12 10 12s10-3 10-12c-3 3-6 4-10 4s-7-1-10-4z" fill="${h}"/>`:'';
+  return `<svg class="av" width="${sz}" height="${sz}" viewBox="0 0 64 64" role="img" aria-label="${CH[id].n}"><rect width="64" height="64" fill="${s.bg}"/>${back}<path d="M8 66c0-13 11-19 24-19s24 6 24 19z" fill="${s.shirt}"/><rect x="28" y="40" width="8" height="9" fill="${s.skin}"/><ellipse cx="32" cy="31" rx="11" ry="13" fill="${s.skin}"/>${bd}${front}<circle cx="27.5" cy="31" r="1.2" fill="#1b1b1b"/><circle cx="36.5" cy="31" r="1.2" fill="#1b1b1b"/><path d="M28.5 38.5q3.5 2.2 7 0" stroke="#7a3b2e" stroke-width="1.3" fill="none" stroke-linecap="round"/>${gl}</svg>`;
+}
+
+/* ───────── данные эпизода ───────── */
+const LABS={hw:'Техника и сеть',sw:'Приложения и журналы',dt:'Люди и процессы'};
+const HY=[
+ {id:'H1',c:'Г-01',t:'У шести заказов за вечер сменился адрес доставки, и все смены сделаны одним и тем же входом: общей учётной записью перевозчика',lab:'dt',ok:1,n:'U1',who:'sed',say:'Вот и сериал. Теперь у него есть дата, время и один и тот же вход.',r:'Шесть смен адреса подряд под одним входом. Это не шесть опечаток, это одна история.'},
+ {id:'H2',c:'Г-02',t:'Это ошибка диспетчера перевозчика: он просто перепутал адреса',lab:'dt',ok:0,ins:1,n:'U1',who:'vor',say:'Ошибка это когда один заказ. Шесть подряд и все на пункты выдачи это уже работа.',r:'Ошибка не выбирает пункты выдачи и не работает ночью по серии. Это находка: опечатка отпала, открывается Г-03.'},
+ {id:'H3',c:'Г-03',t:'Смены идут сериями, вечером и ночью, и ведут не на склады клиентов, а на пункты выдачи',lab:'dt',ok:1,n:'U3',preRej:'H2',who:'kov',say:'Ночью и пункты выдачи. Ладно, это не я. Я вообще ничего не выкатывал. Пока.',r:'Серия, время и адреса складываются в рисунок. Дальше нужно понять, откуда пришёл вход.'},
+ {id:'H4',c:'Г-04',t:'Вход шёл не из сети перевозчика и не с его привычных устройств',lab:'hw',ok:1,n:'U4',pre:'H3',who:'vor',say:'Вход был не оттуда. Значит, в моей схеме не хватает одной стрелки. Больно признавать.',r:'Адрес входа и устройство перевозчику не принадлежат. Технических подробностей нарочно не приводим.'},
+ {id:'H5',c:'Г-05',t:'Пароль общей записи знают четыре диспетчера и бывшие сотрудники, и его не меняли годами',lab:'sw',ok:1,n:'U5',pre:'H3',who:'orl',say:'Знали четверо диспетчеров. И, кажется, Игорь, который у нас год не работает. Но он милый.',r:'Общий пароль живёт дольше людей, которые его знают. Это «семя» дела 5: старая запись в справочнике доступов.'},
+ {id:'H6',c:'Г-06',t:'Нет второго фактора входа и нет подтверждения смены адреса вторым человеком',lab:'sw',ok:1,n:'U7',pre:'H5',who:'erm',say:'Я говорила: «этого нет в процессе». Оказывается, оно должно быть не в процессе, а в системе.',r:'Одного пароля хватало, чтобы изменить адрес доставки. Никто второй об этом не узнавал.'},
+ {id:'H7',c:'Г-07',t:'Виноват диспетчер перевозчика, который передал пароль коллеге',lab:'dt',ok:0,legal:1,n:'U8',who:'orl',say:'Он просто дал пароль коллеге. Так делают все. Это не оправдание, но порядок такой.',r:'Передача пароля была обычной практикой. Слабым оказался порядок, а не человек.'},
+ {id:'H8',c:'Г-08',t:'Достаточно отключить партнёров от системы заказов, и вопрос закроется сам',lab:'sw',ok:0,n:'U1',who:'bel',say:'Дёшево и понятно. Почему вы вздыхаете?',r:'Отключение остановит и честных перевозчиков, а причина останется. Нужны личные входы и подтверждение смены.'},
+ {id:'H9',c:'Г-09',t:'Менялись только заказы с дорогим товаром и только в час пересменки склада',lab:'dt',ok:1,key:'K2',n:'U2',who:'mel',say:'Дорогие паллеты и пересменка. Они знали, когда я хожу пить чай.',r:'Выбраны самые ценные заказы и самое невнимательное время. Это терпеливая подготовка.'},
+ {id:'H10',c:'Г-10',t:'Политика доступа партнёров построена по совету из сборника разборов центра, и этот совет подменён',lab:'dt',ok:1,key:'K3',n:'U9',who:'arh',say:'Подмена совета в нашем же сборнике. Я знаю этот почерк: он ничего не ломает, он поливает. Это «Садовник».',r:'Совет «общая запись допустима, пароль раз в год» в сборнике изначально звучал иначе. Центр отвечает и за свои тексты.'},
+ {id:'H11',c:'Г-11',t:'Личные входы, второй фактор, подтверждение смены адреса вторым человеком, оповещение о сериях и квартальный пересмотр доступов',lab:'sw',ok:1,n:'U7',pre:'H6',who:'sed',say:'Личные входы, второй фактор, подтверждение и оповещения. Я сто раз говорила «нет». Нужно было говорить «да, но так».',r:'Каждая мера закрывает свою часть пути, и ни одна не останавливает честных людей.'},
+ {id:'H12',c:'Г-12',t:'В журнале входов три недели назад видны единичные пробные входы ночью, а потом началась серия',lab:'sw',ok:1,n:'U6',pre:'H1',who:'vor',say:'Три недели назад был один ночной вход. Я пролистал его как шум. Больше не буду.',r:'Журнал показал разведку до серии. Заметить её могли и раньше.'}
+];
+const MS=[
+ {id:'M1',c:'М-01',t:'Собрать группу: операции, логистика, ИТ-безопасность, юрист и связь с перевозчиками',needs:'H1',who:'bel',say:'Группа собрана. Все ругаются, значит, работает.'},
+ {id:'M2',c:'М-02',t:'Сохранить журналы входов и копии заказов до любых правок',needs:null,who:'arh',say:'Журналы и копии заказов сохранены. Это скучно, и это спасёт всё остальное.'},
+ {id:'M3',c:'М-03',t:'Временно разрешить смену адреса только после звонка клиенту',needs:'H3',pre:['M2'],v:['В-01','Смену адреса закрыли и журнал при этом перезаписали: что и когда менялось, уже не доказать.',{t:60,i:10}],who:'erm',say:'Смена адреса только со звонком клиенту. Впервые рада, что у нас есть регламент.'},
+ {id:'M4',c:'М-04',t:'Ввести второй фактор и подтверждение смены адреса вторым человеком',needs:'H6',pre:['M3'],v:['В-02','Подтверждение включили, пока не закрыт временный порядок: у заказов в пути адреса остались прежними, серия продолжилась.',{r:1}],who:'vor',say:'Второй фактор и подтверждение. В схеме появилась новая стрелка, и это хорошая стрелка.'},
+ {id:'M5',c:'М-05',t:'Разбор без наказаний: диспетчера не винить, процесс исправить',needs:'H12',who:'has',say:'Разбор без наказаний. Диспетчер чуть не расплакался от благодарности.'},
+ {id:'M6',c:'М-06',t:'Закрыть общую запись и выдать каждому диспетчеру личный вход',needs:'H5',who:'orl',say:'Общая запись закрыта. Перевозчики ворчат, но у каждого теперь своё имя в журнале.'},
+ {id:'M7',c:'М-07',t:'Передать журналы и копии заказов полиции по описи',needs:'H4',pre:['M2'],v:['В-03','Передали без описи и контрольных сумм: данные нельзя подтвердить.',{i:15}],who:'sed',say:'Описи и контрольные суммы. Полиция любит порядок, я тоже.'},
+ {id:'M8',c:'М-08',t:'Предупредить перевозчиков и клиентов, у кого менялся адрес, простым языком',needs:'H11',who:'has',say:'Клиентам написано человеческим языком. Никто не сказал «сюрприз».'},
+ {id:'M9',c:'М-09',t:'Пересмотреть все доступы партнёров и закрыть забытые',needs:'H4',who:'vor',say:'Нашёл три записи, о которых никто не помнил. Одну, кажется, создал я.'},
+ {id:'M10',c:'М-10',t:'Отключить всех партнёров от системы заказов до понедельника',needs:null,decoy:1,who:'mel',say:'Склад встал. Двадцать машин. Я бы хотела поговорить. Громко.'},
+ {id:'M11',c:'М-11',t:'Календарь: раз в квартал пересматривать доступы партнёров',needs:'H5',who:'erm',say:'Квартальный пересмотр в календаре. Первый раз календарь меня радует.'},
+ {id:'M12',c:'М-12',t:'Сверить нашу политику доступа со сборником разборов и найти подменённые советы',needs:'H9',who:'arh',say:'Сверили. Подменённый совет найден. Остальные проверим по списку.'}
+];
+const DOS=[
+ {id:'D1',k:'path',ep:33,t:'Двойник центра знал детали старых досье'},
+ {id:'D2',k:'weak',ep:13,t:'Копия «про запас» доступна всем, кто видит данные'},
+ {id:'D3',k:'path',ep:35,t:'Терпеливый помощник: доверие копится годами'},
+ {id:'D4',k:'trace',ep:37,t:'Ключ в сборке: чужой доступ жил месяцами'},
+ {id:'D5',k:'path',ep:9,t:'Срочный платёж: срочность как приём'},
+ {id:'D6',k:'weak',ep:38,t:'Копии рядом: сначала портят их'},
+ {id:'D7',k:'trace',ep:24,t:'Улики без описи и контрольных сумм'},
+ {id:'D8',k:'trace',ep:41,t:'Вход не из сети перевозчика',after:'H4'},
+ {id:'D9',k:'path',ep:41,t:'Дорогие заказы в час пересменки',after:'H9'},
+ {id:'D10',k:'weak',ep:41,t:'Нет второго фактора и подтверждения',after:'H6'}
+];
+const RULES=[
+ {k:'K1',ids:['D5','D6'],t:'Срочность и копии рядом: под давлением забывают проверять (дела 9, 38).'},
+ {k:'K2',ids:['D1','D2'],t:'Двойник знал старые досье, копия доступна всем: старое читают внимательнее, чем мы (дела 33, 13). Открыта Г-09.',unlock:'H9'},
+ {k:'K3',ids:['D3','D4'],t:'Терпеливое доверие и ключ в сборке: подготовка идёт годами (дела 35, 37). Открыта Г-10.',unlock:'H10'},
+ {k:'K4',ids:['D8','D9'],t:'Чужой вход и выбранное время: это не случайность.'},
+ {k:'K5',ids:['D10','D5'],t:'Нет подтверждения и срочность: ошибке дают пройти (дела 41, 9).'},
+ {k:'K6',ids:['D7','D2'],t:'Опись и контрольные суммы нужны там, где копия легко разойдётся (дела 24, 13).'}
+];
+const CONCL=[
+ {id:'c1',t:'Общей записью перевозчика пользовался посторонний: пароль знали многие и не меняли, второго фактора и подтверждения смены не было; он выбрал дорогие заказы и час пересменки. Диспетчер не виноват, отключение всех партнёров не нужно. Сохранить журналы, личные входы, второй фактор, подтверждение, квартальный пересмотр доступов, предупредить клиентов. «Садовник» подменил совет в сборнике, и центр должен его исправить',ok:1},
+ {id:'c2',t:'Диспетчер перевозчика ошибся с адресами, нужно напомнить ему про внимательность'},
+ {id:'c3',t:'Виноват диспетчер, передавший пароль: наказать'},
+ {id:'c4',t:'Отключить всех партнёров до понедельника и забыть'}
+];
+const NODES={U1:['Система заказов',1,1],U2:['Дорогие заказы',0,1],U3:['Серии смен',1,0],U4:['Чужой вход',2,1],U5:['Общий пароль',2,0],U6:['Журнал входов',1,2],U7:['План защиты',2,2],U8:['Диспетчеры',0,2],U9:['Почерк «Садовника»',0,0]};
+const EDGES=[['U1','U3'],['U1','U4'],['U1','U6'],['U3','U4'],['U4','U5'],['U5','U7'],['U6','U7'],['U4','U8'],['U2','U1'],['U9','U5'],['U9','U2']];
+const DEPT={
+ bel:{v:'Для вас это деньги: смена адреса переводит их быстрее любого отчёта.',do:['Заранее договоритесь, какие решения команда принимает без вас в нерабочее время.','Просите не «решить сейчас», а «показать два варианта и цену каждого».','Не отключайте партнёров целиком: стоимость простоя почти всегда выше.']},
+ erm:{v:'В вашем процессе есть исключение «для партнёров». Проверьте его первым.',do:['Найдите в процессах все пункты «без звонка» и «для партнёров».','Любая смена адреса и реквизитов идёт через второго человека.','Раз в квартал пересматривайте исключения, а не только основные шаги.']},
+ has:{v:'Вы услышите клиентов первыми. Записывайте, у кого уже изменён адрес.',do:['Заведите короткий скрипт на звонок «у меня сменился адрес».','Не обещайте клиентам невозможного и не называйте причину раньше группы.','Сообщайте в безопасность о серии однотипных обращений.']},
+ orl:{v:'Общий доступ перевозчиков ваша зона. Составьте список, кто и когда им пользовался.',do:['У каждого диспетчера партнёра свой личный вход, без общих паролей.','Список партнёров и их людей пересматривается раз в квартал.','Уволился человек у партнёра, значит, закрывается и его доступ.']},
+ mel:{v:'Вы видите физический конец цепочки: что именно готово к отгрузке и куда.',do:['Перед погрузкой дорогого товара сверяйте адрес с заказом по звонку.','Пересменка не повод пропускать проверку отгрузок.','Сообщайте логистике о странных изменениях адреса до того, как машина уедет.']},
+ vor:{v:'Вам нужна схема, где этот вход нарисован. Если его нет на схеме, дорисуйте.',do:['Ведите перечень всех партнёрских входов и сверяйте со схемой.','Каждая связь на схеме должна иметь владельца.','Старые системы без владельца помечайте как риск, а не как «работает».']},
+ sed:{v:'Журнал входов ваш главный инструмент: серии и ночные часы заметны именно там.',do:['Настройте оповещения о сериях изменений и необычном времени.','Говорите «да, но так»: предлагайте безопасный вариант вместо запрета.','Единичные пробные входы разбирайте так же внимательно, как серии.']},
+ kov:{v:'Страница смены адреса это ваше приложение. Какие проверки в ней есть?',do:['Смена адреса требует подтверждения вторым фактором и вторым человеком.','Релиз по пятницам: добавьте в список проверок вопрос «что может сменить адрес без звонка».','Журнал изменений адреса должен быть неизменяемым.']},
+ cons:{v:'Вы консультант центра: видите всех и не защищаете ничей отдел.',do:['Сверяйте советы со своим сборником: подменённый совет это тоже инцидент.','Начинайте с журнала и порядка действий, а потом уже с мер.','Поддерживайте тех, кто заметил проблему.']}
+};
+const INTRO=[
+ ['arh','Пятница, 18:40. «Меридиан» позвонил сам. За три года это впервые, так что я решила: у них что-то серьёзное, а не опять принтер.'],
+ ['bel','У меня заказы едут не туда. Шесть за вечер. Сколько это стоит за час, мне уже посчитали. Мне не понравилось.'],
+ ['orl','Похоже на опечатки перевозчика. В пятницу вечером они ошибаются чаще, это статистика.'],
+ ['sed','Шесть адресов подряд, вечером, все на пункты выдачи. Это не статистика. Это сериал.'],
+ ['kov','Давайте выкатим исправление и посмотрим. Я уже написал, осталось нажать. Не смотрите на меня так.'],
+ ['vor','В схеме такого входа нет. Значит, его нет. Значит... хм. Тогда как он вошёл?'],
+ ['mel','У меня на складе машина под погрузку. Через двадцать минут она уедет с чужим адресом. Мне это точно нужно?'],
+ ['erm','По регламенту смена адреса требует звонка клиенту. Но есть пункт «для партнёров», там звонок не нужен. Я его не писала. Честно.'],
+ ['has','Клиенты уже звонят. Один спросил, почему его ноутбук едет в пункт у метро. Я сказала: «Это сюрприз». Он не оценил.'],
+ ['arh','Теперь решение, которое запомнят все. Кому вы позвоните первым?']
+];
+const BR1=[
+ {l:'Беляеву: он платит за всё',fx:{bel:1,sed:-1},who:'bel',say:'Приятно, что хоть кто-то начинает с меня. Но давайте быстрее.'},
+ {l:'Седовой: она видит журнал',fx:{sed:1,bel:-1},who:'sed',say:'Спасибо, что с журнала. Беляев потом скажет, что я у него отняла время.'},
+ {l:'Воронову: сначала схема',fx:{vor:1,kov:-1},who:'vor',say:'Схема это хорошо. Правда, в ней, кажется, нет ничего про этот вход.'}
+];
+const TOTAL=865,HALF=432,NEED=['M1','M2','M3','M4','M5','M6','M7','M8'];
+
+/* ───────── состояние ───────── */
+let S;
+const KEY='meridian-state-v1';
+function fresh(dept){
+  const ch={};TEAM.forEach(id=>ch[id]=2);
+  return {clock:0,trust:3,ev:100,res:100,thr:0,acts:0,half:false,hy:{},ms:{},miss:0,rules:{},ch,start:Object.assign({},ch),
+    feed:[],tab:'hyp',sel:null,lab:null,dept:dept||'cons',dsel:[],cs:null,over:null,b2:false,hints:0};
+}
+const $=s=>document.querySelector(s);
+const stamp=m=>{const t=18*60+40+m;const d=Math.floor(t/1440);const h=Math.floor(t%1440/60),mi=t%60;return (d?'Сб ':'Пт ')+String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0')};
+const left=()=>{const m=Math.max(0,TOTAL-S.clock);return Math.floor(m/60)+':'+String(m%60).padStart(2,'0')};
+function say(who,text,kind){S.feed.push({t:stamp(S.clock),who,text,kind:kind||'say',h:kind?null:null})}
+function sys(title,text,kind){S.feed.push({t:stamp(S.clock),title,text,kind:kind||'info'})}
+function chg(id,d){if(!(id in S.ch))return;S.ch[id]=Math.max(0,Math.min(3,S.ch[id]+d))}
+const hy=id=>HY.find(h=>h.id===id), ms=id=>MS.find(m=>m.id===id);
+const conf=id=>S.hy[id]==='ok';
+const avail=h=>{if(h.key&&!S.rules[h.key])return 'key';if(h.pre&&!conf(h.pre))return 'pre';if(h.preRej&&S.hy[h.preRej]!=='ref')return 'rej';return ''};
+
+function tick(min){
+  if(S.over)return;
+  S.clock+=min;S.acts++;
+  if(!S.ms.M3&&S.acts%5===0&&S.thr<6){S.thr++;sys('Риск растёт','Пока смена адреса открыта, серия продолжается. Риск '+S.thr+' из 6.','warn')}
+  if(!S.half&&S.clock>=HALF){S.half=true;if(!S.ms.M5){S.res=40;say('bel','Люди работают вторую половину ночи, и вы ещё не разобрали ситуацию с диспетчером. Они перестали сообщать о странностях. Запас времени 40%.');chg('has',-1)}}
+  if(S.thr>=6)return lose('Риск дошёл до шести: серия смен адреса вышла из-под контроля.');
+  if(S.clock>=TOTAL)return lose('Время вышло: к утру адреса изменены, а причина не найдена.');
+}
+function lose(why){S.over='lose';save(false);modal(`<div class="kick">Эпизод не пройден</div><h2>Штаб потерял ночь</h2><p>${why}</p><p class="sub">Возвращайтесь в начало: теперь вы знаете, где слабые места. Решения вы принимаете заново.</p><div class="row"><button class="btn" data-act="restart">Сыграть снова</button></div>`)}
+
+/* ───────── действия ───────── */
+function checkHyp(id,lab){
+  const h=hy(id);if(!h||S.hy[id]==='ok'||S.hy[id]==='ref'||avail(h))return;
+  tick(20);if(S.over)return;
+  if(h.ins){S.hy[id]='ref';sys(h.c+' опровергнута',h.r,'good');say(h.who,h.say);S.sel=null;S.lab=null;S.tab='hyp';return}
+  if(h.ok&&lab===h.lab){S.hy[id]='ok';sys(h.c+' подтверждена',h.r,'good');say(h.who,h.say);chg(h.who,0);S.sel=null;S.lab=null;
+    if(id==='H3'&&!S.b2)setTimeout(branch2,350);
+    return}
+  S.miss++;S.thr++;
+  if(h.legal){S.trust=Math.max(0,S.trust-1);chg(h.who,-1);sys(h.c+': обвинение',h.r+' Доверие −1, риск +1.','bad');say(h.who,h.say)}
+  else if(h.ok){sys(h.c+': не та лаборатория','Гипотеза верна, но эта лаборатория её не подтвердит. Риск +1.','warn')}
+  else{sys(h.c+': промах',h.r+' Риск +1.','warn');say(h.who,h.say)}
+  if(S.thr>=6)lose('Слишком много промахов: риск дошёл до шести.');
+}
+function playMeasure(id){
+  const m=ms(id);if(!m||S.ms[id]||S.over)return;
+  if(m.needs&&!conf(m.needs))return;
+  const miss=(m.pre||[]).filter(p=>!S.ms[p]);
+  tick(30);if(S.over)return;
+  if(miss.length){const v=m.v;sys(v[0]+': нарушен порядок',v[1],'bad');const e=v[2]||{};
+    if(e.t)S.clock+=e.t;if(e.i)S.ev=Math.max(0,S.ev-e.i);if(e.r)S.thr++;
+    if(S.thr>=6)lose('Нарушение порядка добавило риск, и он дошёл до шести.');return}
+  S.ms[id]=1;
+  if(m.decoy){S.trust=Math.max(0,S.trust-2);S.res=40;S.thr++;chg('bel',-1);chg('mel',-1);chg('orl',-1);sys(m.c+': ловушка','Партнёры отключены. Склад и логистика встали, а причина осталась. Доверие −2, запас времени 40%, риск +1.','bad');say(m.who,m.say);if(S.thr>=6)lose('Отключение партнёров добавило риск до шести.');return}
+  sys(m.c+' принята',m.t,'good');say(m.who,m.say);
+  if(id==='M5'){chg('has',1);chg('orl',1)}
+  if(id==='M3')chg('erm',1);
+  if(id==='M6')chg('orl',1);
+  if(id==='M8')chg('has',1);
+  if(id==='M4')chg('vor',1);
+}
+function linkDos(){
+  const [a,b]=S.dsel;if(!a||!b)return;
+  const r=RULES.find(r=>r.ids.includes(a)&&r.ids.includes(b));
+  if(!r){S.dsel=[];sys('Связи нет','Эти два пункта вместе ничего не объясняют. Риск не растёт, но время идёт.','warn');tick(10);return}
+  if(S.rules[r.k]){S.dsel=[];return}
+  S.rules[r.k]=1;S.dsel=[];tick(10);sys('Нить '+r.k,r.t,'good');
+  if(r.unlock){const h=hy(r.unlock);say('arh','Открыта '+h.c+'. Проверьте её во вкладке «Гипотезы».')}
+}
+function concl(id){
+  const c=CONCL.find(x=>x.id===id);tick(20);if(S.over)return;
+  if(c.ok){win();return}
+  S.miss++;S.thr++;sys('Заключение неточное','Такой вывод не объясняет, почему шесть смен адреса идут одним входом в выбранное время. Риск +1.','warn');S.cs=null;
+  if(S.thr>=6)lose('Неверное заключение добавило риск до шести.');
+}
+function hint(){
+  if(S.over)return;tick(15);S.hints++;
+  const nh=HY.find(h=>(h.ok||h.ins)&&!S.hy[h.id]&&!avail(h));
+  if(nh){say('arh','Попробуйте '+nh.c+(nh.ins?'. Её нужно опровергнуть, не важно в какой лаборатории.':' в лаборатории «'+LABS[nh.lab]+'».'));return}
+  const nm=MS.find(m=>!m.decoy&&!S.ms[m.id]&&(!m.needs||conf(m.needs))&&(m.pre||[]).every(p=>S.ms[p]));
+  if(nm){say('arh','Следующая мера: '+nm.c+'. '+nm.t);return}
+  if(Object.keys(S.rules).length<6)say('arh','Загляните в «Нити»: там остались несвязанные пункты досье.');
+  else say('arh','Можно формулировать заключение.');
+}
+function win(){
+  S.over='win';
+  const need=NEED.every(m=>S.ms[m]);
+  let stars=1;if(need)stars++;if(Object.keys(S.rules).length>=6&&S.trust>=2)stars++;
+  S.stars=stars;save(true);
+  const deltas=TEAM.map(id=>[id,S.ch[id]-S.start[id]]).filter(x=>x[1]!==0);
+  const d=DEPT[S.dept];
+  const dname=S.dept==='cons'?'Консультанта центра':CH[S.dept].s;
+  modal(`<div class="kick">Эпизод 41 закрыт</div><h2>Заключение принято</h2>
+   <div class="stars" aria-label="${stars} из 3 звёзд">${'★'.repeat(stars)}${'☆'.repeat(3-stars)}</div>
+   <p>Через общую запись перевозчика вошёл посторонний, а пароль и порядок смены адреса это позволяли. Журналы сохранены, входы стали личными, смена адреса подтверждается вторым человеком. Подменённый совет в сборнике центра найден и будет исправлен.</p>
+   <div><b>Что делать у вас: ${dname}</b><ul class="tight">${d.do.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+   <div><b>Что запомнят в эпизоде 42</b><div class="delta">${deltas.length?deltas.map(([id,x])=>`<span>${CH[id].n}</span><span class="${x>0?'up':'dn'}">${x>0?'доверяет больше':'доверяет меньше'}</span>`).join(''):'<span>Отношения не изменились</span><span></span>'}</div></div>
+   <p class="sub">«Садовник» появился в архиве центра. Следующий эпизод: «Терминал без хозяина».</p>
+   <div class="row"><button class="btn" data-act="restart">Сыграть снова</button><button class="btn ghost" data-act="close">Остаться в штабе</button></div>`);
+}
+function save(ok){try{localStorage.setItem(KEY,JSON.stringify({ep:41,ok,trust:S.ch,dept:S.dept,stars:S.stars||0}))}catch(e){}}
+
+/* ───────── окна ───────── */
+function modal(html){const o=$('#ov');o.innerHTML=`<div class="modal">${html}</div>`;o.classList.add('on')}
+function closeModal(){$('#ov').classList.remove('on');$('#ov').innerHTML=''}
+let dstep=0;
+function startScreen(){
+  S=fresh();
+  const d=['cons',...TEAM];
+  modal(`<div class="kick">Сезон 6 · эпизод 41</div><h1>Общая учётная запись</h1>
+   <p>Пятница, 18:40. Заказчик «Меридиан» вызвал центр «Контур»: за вечер у шести заказов сменился адрес доставки. У вас 14 часов 25 минут, доверие 3 и восемь руководителей, у каждого свой взгляд.</p>
+   <div><b>Ваш отдел</b><p class="sub" style="margin:2px 0 8px">Выберите, глазами какого отдела смотреть на инцидент. Он подсветится в штабе, а в конце вы получите итог «что делать у вас». Можно остаться консультантом центра.</p>
+   <div class="chips" id="dch">${d.map(id=>`<button class="chip" data-act="dept" data-d="${id}" aria-pressed="${id===S.dept}">${id==='cons'?'Консультант центра':CH[id].s}</button>`).join('')}</div></div>
+   <div class="row"><button class="btn" data-act="begin">Войти в штаб</button></div>`);
+}
+function dialog(){
+  const [w,t]=INTRO[dstep];const last=dstep===INTRO.length-1;
+  modal(`<div class="sp"><div>${av(w,72)}</div><div style="min-width:0"><div class="who2"><b>${CH[w].n}</b><span>${CH[w].r}</span></div><div class="bubble" style="margin-top:6px">${t}</div></div></div>
+   <div class="dots">${INTRO.map((_,i)=>`<i class="${i<=dstep?'on':''}"></i>`).join('')}</div>
+   ${last?`<div class="list">${BR1.map((b,i)=>`<button class="opt" data-act="b1" data-i="${i}">${b.l}</button>`).join('')}</div>`:`<div class="row"><button class="btn" data-act="next">Дальше</button></div>`}`);
+}
+function branch2(){
+  if(S.over||S.b2)return;S.b2=true;render();
+  modal(`<div class="sp"><div>${av('bel',72)}</div><div style="min-width:0"><div class="who2"><b>${CH.bel.n}</b><span>${CH.bel.r}</span></div><div class="bubble" style="margin-top:6px">Отключаем всех партнёров от системы заказов до понедельника. Дёшево, быстро, понятно. Возражения принимаются письменно, в трёх экземплярах.</div></div></div>
+   <div class="list">
+    <button class="opt" data-act="b2" data-i="0">Согласиться: отключаем всех</button>
+    <button class="opt" data-act="b2" data-i="1">Предложить: сменить порядок смены адреса и звонить клиентам</button>
+    <button class="opt" data-act="b2" data-i="2">Попросить час на проверку, прежде чем отключать</button></div>`);
+}
+
+/* ───────── отрисовка ───────── */
+function render(){
+  const a=$('#app');a.dataset.tab=S.tab;
+  // HUD
+  const hrs=(TOTAL-S.clock)/TOTAL;
+  $('#hud').innerHTML=`
+   <div class="m"><small>Время</small><div class="v">${stamp(S.clock)}</div><div class="bar ${hrs<.25?'bad':hrs<.5?'warn':''}"><i style="width:${Math.max(0,hrs*100)}%"></i></div></div>
+   <div class="m"><small>Доверие</small><div class="v">${S.trust} из 3</div><div class="pips">${[0,1,2].map(i=>`<i class="${i<S.trust?'on':''}"></i>`).join('')}</div></div>
+   <div class="m"><small>Улики</small><div class="v">${S.ev}%</div><div class="bar ${S.ev<70?'warn':''}"><i style="width:${S.ev}%"></i></div></div>
+   <div class="m"><small>Запас</small><div class="v">${S.res}%</div><div class="bar ${S.res<=40?'warn':''}"><i style="width:${S.res}%"></i></div></div>
+   <div class="m"><small>Риск</small><div class="v">${S.thr} из 6</div><div class="pips risk">${[0,1,2,3,4,5].map(i=>`<i class="${i<S.thr?(S.thr>=5?'hot ':'')+'on':''}"></i>`).join('')}</div></div>`;
+  // tabs
+  const T=[['feed','Лента',''],['team','Люди',''],['hyp','Гипотезы',HY.filter(h=>S.hy[h.id]).length+'/'+HY.length],['mea','Меры',Object.keys(S.ms).length+'/'+MS.length],['dos','Нити',Object.keys(S.rules).length+'/6'],['fin','Вывод','']];
+  $('#tabs').innerHTML=T.map(([k,l,n])=>`<button role="tab" class="t-${k}" data-act="tab" data-k="${k}" aria-selected="${S.tab===k}">${l}<span class="n">${n||'&nbsp;'}</span></button>`).join('');
+  // team
+  const mood=v=>v>=3?['на вашей стороне','hi']:v<=1?['настроен против','lo']:['присматривается',''];
+  $('#p-team').innerHTML=`<h2>«Меридиан»: люди</h2>`+TEAM.map(id=>{const m=mood(S.ch[id]);return `<div class="person">${av(id,44)}<div><b>${CH[id].n}${S.dept===id?'<span class="you">ваш отдел</span>':''}</b><small>${CH[id].r}</small><span class="mood ${m[1]}">${m[0]}</span></div></div>`}).join('')+
+   `<div class="person">${av('arh',44)}<div><b>${CH.arh.n}</b><small>Центр «Контур»: помнит все прошлые дела</small></div></div>`;
+  // feed
+  const fh=S.feed.map(f=>f.kind==='say'||!f.title?`<div class="msg">${av(f.who,34)}<div><div class="who">${CH[f.who].n}<span>${f.t}</span></div><p>${f.text}</p></div></div>`:`<div class="sys ${f.kind==='info'?'':f.kind}"><b>${f.title} · ${f.t}</b>${f.text}</div>`).join('');
+  $('#p-feed').innerHTML=`<h2>Лента штаба</h2><div class="feedscroll" id="fs">${fh||'<p class="sub">Пока тихо.</p>'}</div><div class="hintrow"><button class="btn ghost" data-act="hint" ${S.over?'disabled':''}>Подсказка Архивариуса (−15 мин)</button></div>`;
+  // hypotheses
+  $('#p-hyp').innerHTML=`<h2>Гипотезы · выберите карточку и лабораторию</h2><div class="list">`+HY.map(h=>{
+    const st=S.hy[h.id],av2=avail(h),open=S.sel===h.id&&!st&&!av2;
+    const chip=st==='ok'?'<span class="st ok">подтверждена</span>':st==='ref'?'<span class="st no">опровергнута</span>':av2==='key'?'<span class="st">нужна нить</span>':av2?'<span class="st">закрыта</span>':'';
+    const need=av2==='key'?`Откроется нитью ${h.key} во вкладке «Нити».`:av2==='pre'?`Сначала подтвердите ${hy(h.pre).c}.`:av2==='rej'?`Сначала опровергните ${hy(h.preRej).c}.`:'';
+    return `<div class="card ${st==='ok'?'ok':''} ${open?'open':''} ${av2?'lock':''}"><button class="hd" data-act="sel" data-id="${h.id}" ${av2||st?'':''} aria-expanded="${open}"><span class="code">${h.c}</span><span class="tx">${h.t}</span>${chip}</button>
+     ${st==='ok'||st==='ref'?`<div class="res">${h.r}</div>`:''}
+     ${av2&&S.sel===h.id?`<div class="need">${need}</div>`:''}
+     ${open?`<div class="labs">${Object.keys(LABS).map(l=>`<button class="lab ${l}" data-act="lab" data-l="${l}" aria-pressed="${S.lab===l}">${LABS[l]}</button>`).join('')}</div><div class="row"><button class="btn" data-act="check" data-id="${h.id}" ${S.lab||h.ins?'':'disabled'}>Проверить (20 мин)</button></div>`:''}
+    </div>`}).join('')+`</div>`;
+  // measures
+  $('#p-mea').innerHTML=`<h2>Меры · порядок важен</h2><div class="list">`+MS.map(m=>{
+    const done=S.ms[m.id],lock=m.needs&&!conf(m.needs);
+    return `<div class="card ${done?'ok':''} ${lock?'lock':''}"><div class="hd"><span class="code">${m.c}</span><span class="tx">${m.t}</span>${done?'<span class="st ok">принята</span>':lock?'<span class="st">закрыта</span>':''}</div>
+     ${m.pre&&!done?`<div class="need">Сначала: ${m.pre.map(p=>ms(p).c).join(', ')}.</div>`:''}
+     ${lock?`<div class="need">Нужна подтверждённая ${hy(m.needs).c}.</div>`:''}
+     ${!done&&!lock?`<div class="row"><button class="btn ${m.decoy?'ghost':''}" data-act="play" data-id="${m.id}">Принять (30 мин)</button></div>`:''}</div>`}).join('')+`</div>`;
+  // dossier
+  const vis=DOS.filter(d=>!d.after||conf(d.after));
+  const lit=new Set();HY.forEach(h=>{if(conf(h.id)&&h.n)lit.add(h.n)});
+  const NX=190,NY=96,svg=`<svg class="map" viewBox="0 0 640 310" role="img" aria-label="Схема связей инцидента">`+
+   EDGES.map(([a,b])=>{const A=NODES[a],B=NODES[b];return `<line class="ed ${lit.has(a)&&lit.has(b)?'on':''}" x1="${70+A[1]*NX}" y1="${34+A[2]*NY}" x2="${70+B[1]*NX}" y2="${34+B[2]*NY}"/>`}).join('')+
+   Object.entries(NODES).map(([k,[t,x,y]])=>{if(k==='U9'&&!lit.has('U9'))return '';return `<g><rect class="nd ${lit.has(k)?'on':''}" x="${70+x*NX-62}" y="${34+y*NY-22}" width="124" height="44" rx="10"/><text x="${70+x*NX}" y="${34+y*NY+4}" text-anchor="middle">${t}</text></g>`}).join('')+`</svg>`;
+  $('#p-dos').innerHTML=`<h2>Нити · свяжите два пункта досье</h2>${svg}<div class="dosg">`+vis.map(d=>`<button class="dos" data-act="dos" data-id="${d.id}" aria-pressed="${S.dsel.includes(d.id)}"><small>${{path:'Путь',weak:'Слабое место',trace:'След'}[d.k]} · дело ${d.ep}</small>${d.t}</button>`).join('')+`</div>
+   <div class="row" style="margin-top:10px"><button class="btn" data-act="link" ${S.dsel.length===2?'':'disabled'}>Связать выбранные (10 мин)</button></div>`+
+   RULES.filter(r=>S.rules[r.k]).map(r=>`<div class="thread"><b>${r.k}</b> ${r.t}</div>`).join('');
+  // conclusion
+  const ready=NEED.every(m=>S.ms[m]);
+  $('#p-fin').innerHTML=`<h2>Заключение</h2>`+(ready?`<p class="sub">Выберите вывод, который объясняет всё сразу.</p>`+CONCL.map(c=>`<button class="opt" data-act="cs" data-id="${c.id}" aria-pressed="${S.cs===c.id}">${c.t}</button>`).join('')+`<div class="row"><button class="btn" data-act="fin" ${S.cs?'':'disabled'}>Подать заключение (20 мин)</button></div>`:`<p class="sub">Заключение откроется, когда будут приняты обязательные меры М-01…М-08: ${NEED.map(m=>`<span class="code">${ms(m).c}</span>${S.ms[m]?' ✓':''}`).join(' ')}</p>`);
+  const fs=$('#fs');if(fs)fs.scrollTop=fs.scrollHeight;
+}
+
+/* ───────── события ───────── */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const act=b.dataset.act;
+  if(act==='dept'){S.dept=b.dataset.d;document.querySelectorAll('#dch .chip').forEach(c=>c.setAttribute('aria-pressed',c.dataset.d===S.dept));return}
+  if(act==='begin'){dstep=0;dialog();return}
+  if(act==='next'){dstep++;dialog();return}
+  if(act==='b1'){const o=BR1[+b.dataset.i];Object.entries(o.fx).forEach(([k,v])=>chg(k,v));closeModal();
+    const d=DEPT[S.dept];sys('Взгляд из вашего отдела',d.v,'info');say(o.who,o.say);S.tab='feed';render();setTimeout(()=>{S.tab='hyp';render()},50);return}
+  if(act==='b2'){const i=+b.dataset.i;closeModal();
+    if(i===0){playDecoyFromBranch()}
+    else if(i===1){chg('bel',-1);chg('erm',1);say('bel','Ладно. Но если склад встанет, я скажу, что это была ваша идея.');say('erm','Звонок клиенту это то, что я называю «процесс работает».');}
+    else{tick(20);say('bel','Час? Хорошо. Но у нас всё стоит денег, включая ваш час.');}
+    render();return}
+  if(act==='restart'){closeModal();startScreen();render();return}
+  if(act==='close'){closeModal();return}
+  if(S.over&&act!=='tab'&&act!=='hint')return;
+  if(act==='tab'){S.tab=b.dataset.k}
+  else if(act==='sel'){const h=hy(b.dataset.id);if(S.hy[h.id]){} else{S.sel=S.sel===h.id?null:h.id;S.lab=null}}
+  else if(act==='lab'){S.lab=b.dataset.l}
+  else if(act==='check'){checkHyp(b.dataset.id,S.lab)}
+  else if(act==='play'){playMeasure(b.dataset.id)}
+  else if(act==='dos'){const id=b.dataset.id;S.dsel=S.dsel.includes(id)?S.dsel.filter(x=>x!==id):[...S.dsel,id].slice(-2)}
+  else if(act==='link'){linkDos()}
+  else if(act==='cs'){S.cs=b.dataset.id}
+  else if(act==='fin'){concl(S.cs)}
+  else if(act==='hint'){hint()}
+  if(!S.over||act==='tab'||act==='hint')render();else render();
+});
+function playDecoyFromBranch(){
+  const m=ms('M10');
+  S.ms.M10=1;S.trust=Math.max(0,S.trust-2);S.res=40;S.thr++;chg('bel',1);chg('mel',-1);chg('orl',-1);
+  tick(30);
+  sys(m.c+': ловушка','Партнёры отключены. Склад и логистика встали, а причина осталась. Доверие −2, запас времени 40%, риск +1.','bad');
+  say('bel','Партнёры отключены. Красота! Почему Галина мне звонит двадцать раз?');say('mel',m.say);
+}
+startScreen();render();
+</script>
