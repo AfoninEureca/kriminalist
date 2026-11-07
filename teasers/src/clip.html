@@ -1,0 +1,92 @@
+<!doctype html><meta charset="utf-8"><title>clip</title>
+<style>
+@font-face{font-family:Unb;src:url(unbounded-800.woff2);font-weight:800}
+@font-face{font-family:Ons;src:url(onest-400.woff2);font-weight:400}
+@font-face{font-family:Ons;src:url(onest-800.woff2);font-weight:800}
+@font-face{font-family:Mono;src:url(ibm-plex-mono-500.woff2);font-weight:500}
+html,body{margin:0;background:#000}canvas{display:block}
+</style><canvas id="c" width="1280" height="720"></canvas>
+<script>
+const C=document.getElementById('c'),X=C.getContext('2d'),W=1280,H=720;
+const CFG={
+6:{n:6,title:'Штаб «Меридиан»',acc:'#4fd1c5',bg:'#07121a',lines:['Восемь руководителей. Одна компания.','Шесть дел подряд: каждое решение казалось разумным.','Кто-то менял в совете два слова.'],q:'Кто проверит замок?',m:'hq'},
+7:{n:7,title:'Чужие ключи',acc:'#f6ad55',bg:'#150e07',lines:['Подрядчик, облако, поставщик, партнёр.','У каждого из них есть ключ от вашей двери.','Вы знаете, сколько их?'],q:'Чьими руками вы защищены?',m:'chain'},
+8:{n:8,title:'Цена слова',acc:'#fc8181',bg:'#160a0c',lines:['Первый час решает, что скажут о вас людям.','Что мы знаем. Чего не знаем. Что делать вам.','Молчание тоже сообщение.'],q:'Что вы скажете людям — и когда?',m:'time'},
+9:{n:9,title:'Голос, которому поверили',acc:'#b794f4',bg:'#0e0a17',lines:['Голос директора. Видео коллеги. Отчёт помощника.','Похожее стало дешёвым.','Проверка вторым каналом всё ещё работает.'],q:'Как отличить настоящее от похожего?',m:'wave'},
+10:{n:10,title:'Передать ключи',acc:'#68d391',bg:'#07140d',lines:['Школа, поликлиника, семейное дело.','Первый день и последний день сотрудника.','Защита, которая живёт без вас.'],q:'Кто проверит замок, когда вас не будет?',m:'relay'}
+};
+const P=new URLSearchParams(location.search),cfg=CFG[P.get('s')||6];
+const cl=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),ease=v=>v*v*(3-2*v),seg=(t,a,b)=>cl((t-a)/(b-a));
+function typed(s,t,t0,cps=26){const n=Math.floor(cl((t-t0)*cps,0,s.length));return s.slice(0,n)}
+function txt(s,x,y,font,col,al='left',a=1){X.globalAlpha=a;X.font=font;X.fillStyle=col;X.textAlign=al;X.fillText(s,x,y);X.globalAlpha=1}
+function wrap(s,x,y,w,lh,font,col,al='left'){X.font=font;const ws=s.split(' ');let l='';let yy=y;for(const wd of ws){const t2=l?l+' '+wd:wd;if(X.measureText(t2).width>w&&l){txt(l,x,yy,font,col,al);yy+=lh;l=wd}else l=t2}txt(l,x,yy,font,col,al);return yy}
+function rnd(i){const s=Math.sin(i*127.1)*43758.5453;return s-Math.floor(s)}
+function bgd(t){X.fillStyle=cfg.bg;X.fillRect(0,0,W,H);X.strokeStyle='rgba(255,255,255,.035)';X.lineWidth=1;for(let x=0;x<W;x+=40){X.beginPath();X.moveTo(x,0);X.lineTo(x,H);X.stroke()}for(let y=0;y<H;y+=40){X.beginPath();X.moveTo(0,y);X.lineTo(W,y);X.stroke()}
+ const g=X.createRadialGradient(W/2,H/2,100,W/2,H/2,800);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.65)');X.fillStyle=g;X.fillRect(0,0,W,H);
+ X.fillStyle='rgba(255,255,255,.03)';const sy=(t*90)%H;X.fillRect(0,sy,W,3)}
+function node(x,y,r,col,a=1,lab){X.globalAlpha=a;X.beginPath();X.arc(x,y,r,0,7);X.fillStyle=col;X.fill();X.lineWidth=2;X.strokeStyle='rgba(255,255,255,.35)';X.stroke();X.globalAlpha=1;if(lab)txt(lab,x,y+r+20,'500 14px Mono','rgba(255,255,255,.7)','center',a)}
+function line(x1,y1,x2,y2,col,a=1,w=2,p=1){X.globalAlpha=a;X.strokeStyle=col;X.lineWidth=w;X.beginPath();X.moveTo(x1,y1);X.lineTo(x1+(x2-x1)*p,y1+(y2-y1)*p);X.stroke();X.globalAlpha=1}
+// motifs, t in 0..1 over scene 6..15 s (local seconds u)
+function motif(m,u){const cx=W/2,cy=385;
+ if(m==='hq'){const names=['Беляев','Ермакова','Хасанов','Орлов','Мельник','Воронов','Седова','Ковалёв'];const R=190;
+  const pos=names.map((_,i)=>[cx+Math.cos(i/8*6.283-1.57)*R*1.35,cy+Math.sin(i/8*6.283-1.57)*R]);
+  pos.forEach((p,i)=>{const a=seg(u,i*.18,i*.18+.4);line(cx,cy,p[0],p[1],cfg.acc,.4*a,2,a)});
+  pos.forEach((p,i)=>{const a=seg(u,i*.18,i*.18+.4);node(p[0],p[1],20,cfg.acc,a,names[i])});
+  node(cx,cy,34,'#fff',seg(u,0,.4));txt('центр',cx,cy+6,'500 14px Mono','#000','center',seg(u,0,.4));
+  const flip=seg(u,4.2,4.6),fix=seg(u,7,7.4);const bw=420,bx=cx-bw/2,by=cy+R+60;
+  X.globalAlpha=seg(u,3.6,4);X.fillStyle='rgba(255,255,255,.08)';X.fillRect(bx,by,bw,48);X.globalAlpha=1;
+  const s1=fix>0?'совет: проверяйте':(flip>0.5?'совет: можно без проверки':'совет: проверяйте');
+  const col=fix>0?'#68d391':(flip>.5?'#fc8181':'#fff');txt(s1,cx,by+31,'500 22px Mono',col,'center',seg(u,3.6,4));
+ }
+ if(m==='chain'){const n=6,gap=170,x0=cx-gap*(n-1)/2;const lab=['вы','облако','подрядчик','поставщик','партнёр','бухгалтер'];
+  for(let i=0;i<n-1;i++){const a=seg(u,i*.5,i*.5+.5);line(x0+i*gap,cy,x0+(i+1)*gap,cy,cfg.acc,a,4,a)}
+  for(let i=0;i<n;i++){const a=seg(u,i*.5,i*.5+.4);node(x0+i*gap,cy,i?24:32,i?cfg.acc:'#fff',a,lab[i])}
+  for(let i=1;i<n;i++){const a=seg(u,3+i*.35,3.5+i*.35);const y=cy-110-(i%2)*50;line(x0+i*gap,cy-30,x0+i*gap,y+20,'#fc8181',a*.8,2,a);X.globalAlpha=a;txt('ключ',x0+i*gap,y+8,'500 16px Mono','#fc8181','center',a)}
+  const cnt=Math.floor(3+seg(u,3,8)*38);txt('внешних доступов: '+cnt,cx,cy+190,'500 30px Mono',cnt>20?'#fc8181':'#fff','center',seg(u,2.5,3.2));
+  const ok=seg(u,7.5,8.2);txt('реестр: все ключи на виду',cx,cy+240,'500 22px Mono','#68d391','center',ok)}
+ if(m==='time'){const bx=210,bw=860,y0=210;const rows=[['00:00','сигнал'],['00:20','изолировали'],['01:00','кому сказать'],['03:00','проверили масштаб'],['24:00','письмо людям'],['72:00','отчёт регулятору']];
+  line(bx,y0,bx,y0+rows.length*52,cfg.acc,.6,3,seg(u,0,1.2));
+  rows.forEach((r,i)=>{const a=seg(u,.6+i*.55,1+i*.55);const y=y0+i*52;node(bx,y,8,cfg.acc,a);txt(r[0],bx-24,y+6,'500 18px Mono','rgba(255,255,255,.6)','right',a);txt(r[1],bx+26,y+6,'500 22px Mono','#fff','left',a)});
+  const a2=seg(u,4.2,5);X.globalAlpha=a2;X.fillStyle='rgba(255,255,255,.07)';X.fillRect(700,200,420,170);X.globalAlpha=1;
+  txt('Что знаем',730,235,'800 20px Ons',cfg.acc,'left',a2);txt('Чего не знаем',730,300,'800 20px Ons','#fc8181','left',a2);
+  txt(typed('вход через общую запись',u,4.8,22),730,265,'500 18px Mono','#fff','left',a2);txt(typed('сколько записей затронуто',u,5.8,22),730,330,'500 18px Mono','#fff','left',a2);
+  txt('Скажем честно и коротко',cx,cy+210,'800 30px Ons','#fff','center',seg(u,6.8,7.6))}
+ if(m==='wave'){const y1=cy-60,y2=cy+80;const amp=seg(u,0,1);
+  const f=(x,k)=>Math.sin(x*.02*k+u*3)*30*amp*(0.6+0.4*Math.sin(x*.004+u))+Math.sin(x*.05+u*5)*8*amp;
+  function wv(y,col,off,al){X.globalAlpha=al;X.strokeStyle=col;X.lineWidth=3;X.beginPath();for(let x=190;x<=1090;x+=4){const v=f(x,1)+off*Math.sin(x*.09+u*7)*seg(u,2,5);x===190?X.moveTo(x,y+v):X.lineTo(x,y+v)}X.stroke();X.globalAlpha=1}
+  wv(y1,'#fff',0,1);wv(y2,cfg.acc,3.5,1);
+  txt('настоящий',160,y1+6,'500 16px Mono','rgba(255,255,255,.7)','right');txt('похожий',160,y2+6,'500 16px Mono',cfg.acc,'right');
+  txt('?',W-150,cy+10,'800 120px Unb',cfg.acc,'center',seg(u,3,3.8)*(.6+.4*Math.sin(u*6)));
+  const a=seg(u,5.5,6.3);X.globalAlpha=a;X.fillStyle='rgba(104,211,145,.15)';X.fillRect(cx-250,cy+170,500,52);X.globalAlpha=1;txt('проверка вторым каналом: звонок по номеру из договора',cx,cy+203,'500 17px Mono','#68d391','center',a)}
+ if(m==='relay'){const n=8,gap=130,x0=cx-gap*(n-1)/2;
+  for(let i=0;i<n;i++){const a=seg(u,i*.15,i*.15+.4);node(x0+i*gap,cy,i===0?28:22,i===n-1?'#fff':cfg.acc,a)}
+  for(let i=0;i<n-1;i++)line(x0+i*gap,cy,x0+(i+1)*gap,cy,cfg.acc,.4*seg(u,1,2),2);
+  const kp=cl((u-2)/5)*(n-1);const kx=x0+kp*gap;const ky=cy-70-Math.sin((kp%1)*3.1416)*40;
+  if(u>1.8){X.globalAlpha=1;X.fillStyle='#f6e05e';X.beginPath();X.arc(kx,ky,13,0,7);X.fill();X.fillRect(kx+8,ky-3,26,6);X.fillRect(kx+24,ky,4,10)}
+  const lock=seg(u,7.2,8);const lx=x0+(n-1)*gap,ly=cy+110;
+  X.globalAlpha=lock;X.strokeStyle='#68d391';X.lineWidth=7;X.beginPath();X.arc(lx,ly-26,24,3.14,0);X.stroke();X.fillStyle='#68d391';X.fillRect(lx-34,ly-26,68,56);X.globalAlpha=1;
+  txt('и каждый знает, где замок',cx,cy+210,'800 28px Ons','#fff','center',seg(u,7.4,8.2))}
+}
+function draw(t){bgd(t);
+ // intro 0-2.2
+ const a0=seg(t,.2,1.2)*(1-seg(t,2.6,3.2));txt('ЦЕНТР «КОНТУР» ПРЕДСТАВЛЯЕТ',W/2,H/2+6,'500 22px Mono','rgba(255,255,255,.85)','center',a0);
+ // title 3-6.5
+ const a1=seg(t,3,3.6)*(1-seg(t,6.2,6.8));
+ if(a1>0){txt('СЕЗОН '+cfg.n,W/2,H/2-60,'500 26px Mono',cfg.acc,'center',a1);
+  const ttl=cfg.title;X.font='800 64px Unb';let sz=64;while(X.measureText(ttl).width>W-160&&sz>34){sz-=2;X.font='800 '+sz+'px Unb'}
+  txt(typed(ttl,t,3.5,22),W/2,H/2+20,'800 '+sz+'px Unb','#fff','center',a1);
+  line(W/2-120,H/2+60,W/2+120,H/2+60,cfg.acc,a1,3,seg(t,4,5.2))}
+ // motif 6.5-17
+ const m=seg(t,6.5,7.1)*(1-seg(t,17.6,18.2));
+ if(m>0){X.globalAlpha=m;motif(cfg.m,t-6.5);X.globalAlpha=1;
+  const li=Math.min(2,Math.floor((t-7)/3.3));if(li>=0){const s=cfg.lines[li];const ta=seg(t,7+li*3.3,7.4+li*3.3)*(1-seg(t,9.9+li*3.3,10.3+li*3.3))*m;
+   if(ta>0)wrap(typed(s,t,7.1+li*3.3,34),W/2,110,1000,40,'800 30px Ons','#fff','center')}}
+ // outro 17.8-20
+ const a3=seg(t,17.9,18.7)*(1-seg(t,19.6,20));
+ if(a3>0){wrap(cfg.q,W/2,H/2-10,1000,56,'800 46px Unb','#fff','center');txt('Центр «Контур» · @CyberSherlock404bot',W/2,H/2+90,'500 20px Mono',cfg.acc,'center',a3)}
+ // global fade
+ const f=1-seg(t,19.7,20)+0;X.globalAlpha=1;X.fillStyle='rgba(0,0,0,'+(1-seg(t,0,.3))+')';X.fillRect(0,0,W,H);
+}
+window.READY=document.fonts.load('800 20px Unb').then(()=>Promise.all([document.fonts.load('800 20px Ons'),document.fonts.load('500 20px Mono'),document.fonts.load('400 20px Ons')]));
+window.frame=(i)=>{draw(i/24);return C.toDataURL('image/jpeg',0.9)};
+</script>
