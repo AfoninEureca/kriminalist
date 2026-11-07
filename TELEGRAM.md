@@ -4,7 +4,7 @@
 
 | Папка | Что это | Где живёт |
 |---|---|---|
-| `docs/` | Игра: каталог и сцены 2–24 как мини-приложение Telegram и обычный сайт | GitHub Pages (Settings → Pages → ветка `main`, папка `/docs`) |
+| `docs/` | Игра: каталог и сцены 2–32 как мини-приложение Telegram и обычный сайт | GitHub Pages (Settings → Pages → ветка `main`, папка `/docs`) |
 | `bot/` | Бот на Python: кнопка «Играть», протоколы, истории игроков, модерация, баллы, рейтинг, карточки | компьютер или сервер, где запущен `python bot.py` |
 
 ## 1. Выложить игру (2 минуты)
@@ -66,10 +66,10 @@ python bot.py
 
 ## Новая сцена
 
-1. Положите `scene-25.html` в `docs/`. Перед `</body>` добавьте три строки, как в остальных сценах:
+1. Положите `scene-33.html` в `docs/`. Перед `</body>` добавьте три строки, как в остальных сценах:
    ```html
    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-   <script>window.KONTUR_SCENE=25;</script>
+   <script>window.KONTUR_SCENE=33;</script>
    <script src="tg.js"></script>
    ```
 2. Добавьте карточку сцены в `index.html`, а название — в словарь `SCENES` в `bot.py`.

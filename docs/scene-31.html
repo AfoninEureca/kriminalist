@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Бот обещал</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=PT+Serif:wght@700&family=Rubik:wght@400;500;600;700&display=swap">
+<style>
+/* Concept: «стол следователя» — бумажные карточки досье, красная нить связей, док-панель ролей снизу. */
+:root{
+  --bg:#efe8dc;--card:#fbf7f0;--card2:#f3ece0;--ink:#1f1a14;--ink2:#6b5f50;--rule:#d9cdb8;
+  --acc:#c2410c;--acc2:#0f766e;--on-acc:#ffffff;--thread:#b91c1c;
+  --unk:#8a7f70;--sus:#b7791f;--con:#b91c1c;--pro:#15803d;--cln:#7c8a7a;
+  --hw:#0f766e;--sw:#4338ca;--dt:#9d174d;
+  --paper:var(--card);--paper2:var(--card2);--sig:var(--acc);--on-sig:var(--on-acc);
+  --f-b:'Rubik',system-ui,sans-serif;--f-m:'JetBrains Mono',ui-monospace,monospace;--f-d:'PT Serif',Georgia,serif;
+  --shadow:0 1px 0 rgba(31,26,20,.06),0 6px 18px rgba(31,26,20,.07);--r:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14110e;--card:#1d1915;--card2:#262019;--ink:#f3ebdd;--ink2:#b3a58f;--rule:#3a3128;
+  --acc:#f97316;--acc2:#2dd4bf;--on-acc:#1a120b;--thread:#f87171;
+  --unk:#9b8f7e;--sus:#f5b041;--con:#f87171;--pro:#4ade80;--cln:#94a39a;--hw:#2dd4bf;--sw:#a5b4fc;--dt:#f9a8d4;
+  --shadow:0 1px 0 rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.35)}}
+:root[data-theme="dark"]{
+  --bg:#14110e;--card:#1d1915;--card2:#262019;--ink:#f3ebdd;--ink2:#b3a58f;--rule:#3a3128;
+  --acc:#f97316;--acc2:#2dd4bf;--on-acc:#1a120b;--thread:#f87171;
+  --unk:#9b8f7e;--sus:#f5b041;--con:#f87171;--pro:#4ade80;--cln:#94a39a;--hw:#2dd4bf;--sw:#a5b4fc;--dt:#f9a8d4;
+  --shadow:0 1px 0 rgba(0,0,0,.4),0 8px 22px rgba(0,0,0,.35)}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.45 var(--f-b);-webkit-text-size-adjust:100%}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:not-allowed}
+:focus-visible{outline:2.5px solid var(--acc);outline-offset:2px}
+[hidden]{display:none!important}
+.wrap{max-width:1180px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left,0px)) calc(96px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px))}
+/* HUD */
+.hud{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--rule);margin:0 -16px;padding:10px 16px}
+.hud-top{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.hud-title{font:700 1rem/1.2 var(--f-d);margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hud-title small{display:block;font:500 .7rem var(--f-m);color:var(--ink2);letter-spacing:.06em;text-transform:uppercase}
+.timer{display:flex;align-items:center;gap:8px;flex:none}
+.timer b{font:700 1.2rem var(--f-m);font-variant-numeric:tabular-nums}
+.ibtn{width:40px;height:40px;border-radius:12px;border:1.5px solid var(--rule);background:var(--card);display:grid;place-items:center}
+.ibtn svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;padding-top:8px}
+@media (min-width:700px){.stats{display:flex;gap:8px}}
+.stats::-webkit-scrollbar{display:none}
+.stat{flex:none;background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:6px 8px;min-width:0}
+@media (min-width:700px){.stat{min-width:104px;padding:6px 10px}}
+.stat span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 .6rem var(--f-m);color:var(--ink2);text-transform:uppercase;letter-spacing:.05em}
+.stat b{font:700 .8rem var(--f-m);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (min-width:700px){.stat span{font-size:.66rem}.stat b{font-size:.95rem}}
+.bar{height:5px;border-radius:3px;background:var(--card2);margin-top:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--c,var(--acc2));border-radius:3px;transition:width .4s}
+/* sections */
+.view{padding-top:14px}
+.grid{display:grid;gap:14px;grid-template-columns:minmax(0,1fr);align-items:start}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}.span2{grid-column:1/-1}}
+.card{background:var(--card);border:1px solid var(--rule);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;min-width:0}
+.card h2{margin:0 0 10px;font:700 1.05rem var(--f-d);display:flex;align-items:center;gap:8px}
+.card h2 .cnt{margin-left:auto;font:500 .75rem var(--f-m);color:var(--ink2)}
+.brief summary{list-style:none;cursor:pointer;display:flex;gap:10px;align-items:baseline}
+.brief summary::-webkit-details-marker{display:none}
+.brief h1{margin:0;font:700 clamp(1.5rem,5.5vw,2.3rem)/1.1 var(--f-d)}
+.brief .kick{font:500 .72rem var(--f-m);color:var(--acc);text-transform:uppercase;letter-spacing:.08em;margin:0 0 6px}
+.brief p{margin:.6em 0 0;color:var(--ink2)}
+/* pills */
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.pill{border:1.5px solid var(--rule);background:var(--card2);border-radius:999px;padding:7px 13px;font:500 .85rem var(--f-b)}
+.pill[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.pill .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);margin-left:6px;vertical-align:middle}
+.mapwrap{background:var(--card2);border-radius:12px;padding:6px;border:1px solid var(--rule)}
+.mapwrap svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font:500 .74rem var(--f-m);color:var(--ink2);margin-top:8px}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c);margin-right:5px}
+/* note / banner */
+.note{margin-top:12px;background:color-mix(in srgb,var(--sus) 16%,var(--card));border-left:4px solid var(--sus);border-radius:10px;padding:12px 14px}
+.note.win{background:color-mix(in srgb,var(--pro) 14%,var(--card));border-color:var(--pro)}
+.note.lose{background:color-mix(in srgb,var(--con) 14%,var(--card));border-color:var(--con)}
+.note b{display:block;font:700 1rem var(--f-d);margin-bottom:4px}
+.note .btn{margin-top:8px}
+.stars{font-size:1.4rem;letter-spacing:2px;color:var(--acc)}
+.prot-t{width:100%;min-height:8em;font:500 .76rem/1.4 var(--f-m);background:var(--card);color:var(--ink);border:1px solid var(--rule);border-radius:8px;padding:.5em;margin-top:8px}
+.concl{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.concl .btn{text-align:left;line-height:1.35}
+/* buttons */
+.btn{border:1.5px solid var(--ink);background:transparent;border-radius:10px;padding:9px 14px;font:600 .9rem var(--f-b)}
+.btn.sig{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.btn:disabled{opacity:.4}
+/* hypotheses */
+.hlist{display:flex;flex-direction:column;gap:8px}
+.hcard{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;text-align:left;border:1.5px solid var(--rule);background:var(--card);border-radius:12px;padding:11px 12px;position:relative;transition:transform .15s,border-color .15s}
+.hcard:not(:disabled):active{transform:scale(.985)}
+.hcard:not(:disabled):hover{border-color:var(--ink2)}
+.hcard .code{grid-row:span 2;font:700 .9rem var(--f-m);color:var(--acc);display:flex;flex-direction:column;line-height:1.2}
+.hcard .code em{font-style:normal;font-weight:500;color:var(--ink2);font-size:.76rem}
+.hcard b{font:600 .98rem/1.3 var(--f-b)}
+.hcard small{color:var(--ink2);font-size:.86rem}
+.hcard .tag{grid-column:2;justify-self:start;margin-top:4px}
+.hcard:disabled{opacity:.62}
+.hcard.conf{border-color:var(--con);background:color-mix(in srgb,var(--con) 8%,var(--card))}
+.hcard.rej{opacity:.75}.hcard.rej b{text-decoration:line-through}
+.tag{display:inline-block;font:600 .68rem var(--f-m);letter-spacing:.04em;text-transform:uppercase;border-radius:6px;padding:3px 7px;background:var(--card2);color:var(--ink2);border:1px solid var(--rule)}
+.tag.con{background:var(--con);color:var(--card);border-color:var(--con)}
+.tag.pro{background:var(--pro);color:var(--card);border-color:var(--pro)}
+.tag.sus{background:var(--sus);color:var(--card);border-color:var(--sus)}
+/* measures */
+.mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.mtile{text-align:left;border:1.5px solid var(--rule);border-radius:12px;background:var(--card2);padding:10px;display:flex;flex-direction:column;gap:3px;min-height:92px}
+.mtile .kcode{font:700 .78rem var(--f-m);color:var(--acc2)}
+.mtile b{font:600 .88rem/1.25 var(--f-b)}
+.mtile em{margin-top:auto;font:500 .7rem var(--f-m);font-style:normal;color:var(--ink2);text-transform:uppercase}
+.mtile.done{background:color-mix(in srgb,var(--pro) 16%,var(--card));border-color:var(--pro)}
+.mtile:disabled:not(.done){opacity:.5}
+/* dossier board */
+.board{position:relative}
+.pins{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;position:relative;z-index:1}
+@media (min-width:600px){.pins{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.pin{position:relative;text-align:left;border:1px solid var(--rule);border-radius:10px;background:var(--card2);padding:12px 10px 10px;font-size:.84rem;line-height:1.3;transform:rotate(var(--rot,0deg));transition:transform .15s,box-shadow .15s}
+.pin::before{content:"";position:absolute;top:-6px;left:50%;width:12px;height:12px;margin-left:-6px;border-radius:50%;background:var(--thread);box-shadow:0 1px 2px rgba(0,0,0,.3)}
+.pin b{display:block;font:700 .74rem var(--f-m);color:var(--ink2);margin-bottom:3px}
+.pin[aria-pressed="true"]{transform:rotate(0) scale(1.03);box-shadow:0 0 0 2.5px var(--acc);background:var(--card)}
+.pin.linked{border-color:var(--thread)}
+.thread{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:visible}
+.thread path{fill:none;stroke:var(--thread);stroke-width:2.5;stroke-linecap:round;opacity:.85}
+.boardbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
+.boardbar small{color:var(--ink2)}
+/* log */
+.log{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--rule);display:flex;flex-direction:column;gap:9px;max-height:26em;overflow:auto}
+.log li{position:relative;font-size:.88rem}
+.log li::before{content:"";position:absolute;left:-20px;top:.45em;width:10px;height:10px;border-radius:50%;background:var(--card);border:2px solid var(--unk)}
+.log li.ok::before{border-color:var(--pro);background:var(--pro)}.log li.warn::before{border-color:var(--con);background:var(--con)}.log li.miss::before{border-color:var(--sus)}.log li.info::before{border-color:var(--acc2)}
+.log .n{font:600 .7rem var(--f-m);color:var(--ink2);margin-right:6px}
+/* map svg classes */
+.st-unk{--c:var(--unk)}.st-sus{--c:var(--sus)}.st-con{--c:var(--con)}.st-pro{--c:var(--pro)}.st-cln{--c:var(--cln)}
+.node .disc{fill:var(--card);stroke:var(--c);stroke-width:3}
+.node .halo{fill:none;stroke:var(--c);stroke-width:1.5;stroke-dasharray:3 4;opacity:0}
+.node.ring .halo{opacity:1;stroke:var(--acc);stroke-width:2.4}
+.node.dim,.link.dim{opacity:.28}
+.node.thr .disc{stroke:var(--sus)!important;stroke-dasharray:5 3;stroke-width:4!important}
+.nl{font:600 12.5px var(--f-b);fill:var(--ink)}
+.ns{font:500 10px var(--f-m);fill:var(--c);letter-spacing:.05em;text-transform:uppercase}
+.link line{stroke:var(--c);stroke-width:3}
+.link rect{fill:var(--card);stroke:var(--c);stroke-width:1.4}
+.lc{font:600 11px var(--f-m);fill:var(--c)}
+.veil .disc{stroke:var(--unk);stroke-dasharray:5 5;fill:var(--card)}
+.veil text{font:700 26px var(--f-d);fill:var(--unk)}
+.ico{stroke:var(--ink);fill:none;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+/* bottom sheet */
+.sheet{position:fixed;inset:0;z-index:40;display:flex;align-items:flex-end;justify-content:center;background:rgba(20,15,10,.45)}
+.sheet-card{width:min(640px,100%);background:var(--card);border-radius:20px 20px 0 0;padding:10px 18px calc(18px + env(safe-area-inset-bottom,0px));max-height:88vh;overflow:auto;animation:up .22s ease-out;box-shadow:0 -10px 30px rgba(0,0,0,.25)}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+.grab{width:42px;height:5px;border-radius:3px;background:var(--rule);margin:2px auto 12px}
+.sheet h3{margin:0;font:700 1.25rem/1.25 var(--f-d)}
+.sheet .sub{color:var(--ink2);margin:.4em 0 .8em}
+.labs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:10px 0}
+.lab{border:2px solid var(--rule);border-radius:12px;background:var(--card2);padding:10px 8px;text-align:left;--l:var(--ink2)}
+.lab b{display:block;font:600 .9rem var(--f-b);color:var(--l)}
+.lab small{display:block;font-size:.72rem;color:var(--ink2);line-height:1.25}
+.lab .cost{font:600 .72rem var(--f-m);color:var(--ink)}
+.lab[aria-pressed="true"]{border-color:var(--l);background:color-mix(in srgb,var(--l) 14%,var(--card))}
+.sheet-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.result{perspective:900px;margin:8px 0}
+.result .face{border-radius:14px;padding:16px;border:2px solid var(--c);background:color-mix(in srgb,var(--c) 12%,var(--card));animation:flip .5s ease-out}
+@keyframes flip{from{transform:rotateX(70deg);opacity:0}to{transform:none;opacity:1}}
+.stamp{display:inline-block;font:700 .9rem var(--f-m);letter-spacing:.1em;text-transform:uppercase;border:2.5px solid var(--c);color:var(--c);border-radius:8px;padding:4px 10px;transform:rotate(-3deg);margin-bottom:8px}
+.working{display:flex;align-items:center;gap:10px;color:var(--ink2);margin:10px 0}
+.working i{width:18px;height:18px;border-radius:50%;border:3px solid var(--rule);border-top-color:var(--acc);animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.sheet-card,.result .face,.working i{animation:none}}
+/* dock */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;justify-content:center;padding:8px 12px calc(8px + env(safe-area-inset-bottom,0px));background:color-mix(in srgb,var(--card) 92%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--rule)}
+.dock-in{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:min(560px,100%)}
+.tab{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 4px;border-radius:12px;text-decoration:none;color:var(--ink2);font:600 .76rem var(--f-b)}
+.tab svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.tab[aria-current="page"]{background:var(--ink);color:var(--card)}
+/* toast */
+.toast-wrap{position:fixed;left:0;right:0;bottom:calc(84px + env(safe-area-inset-bottom,0px));display:flex;justify-content:center;pointer-events:none;z-index:50;padding:0 16px}
+#toast{background:var(--ink);color:var(--card);padding:.6em 1em;border-radius:10px;max-width:34em;opacity:0;transform:translateY(8px);transition:opacity .2s,transform .2s;font-size:.92rem}
+#toast.show{opacity:1;transform:none}
+/* engineer / player components */
+.bench{border-top:4px solid var(--lab,var(--acc))}
+.bench h2{color:var(--ink)}
+.rows{display:flex;flex-direction:column;gap:8px}
+.svgbox{background:var(--card2);border-radius:10px;border:1px solid var(--rule)}
+.svgbox svg{display:block;width:100%;height:auto}
+.spot{cursor:pointer;outline:none}
+.spot circle{fill:var(--card);stroke:var(--lab,var(--acc));stroke-width:2.2}
+.spot text{font:700 12px var(--f-m);fill:var(--lab,var(--acc));text-anchor:middle}
+.spot.seen circle{fill:var(--lab,var(--acc))}.spot.seen text{fill:var(--card)}
+.part{fill:var(--card);stroke:var(--ink2);stroke-width:2}
+.rrow{display:grid;grid-template-columns:2em 1fr;gap:8px;text-align:left;padding:9px 10px;border:1.5px solid var(--rule);background:var(--card2);border-radius:10px}
+.rrow .num{font:700 .9rem var(--f-m);color:var(--lab,var(--acc))}
+.rrow b{font-size:.92rem}.rrow small{display:block;color:var(--ink2);font-size:.84rem}
+.rrow.seen{border-color:var(--lab,var(--acc));background:var(--card)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--rule);background:var(--card2);border-radius:999px;padding:6px 12px;font:500 .82rem var(--f-b)}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.swrow{display:flex;flex-direction:column;gap:6px;padding:10px;border:1px solid var(--rule);border-radius:10px;background:var(--card2)}
+.swrow b{font-size:.9rem}
+.msg{margin:4px 0 0;padding:9px 12px;border-radius:10px;background:color-mix(in srgb,var(--sus) 14%,var(--card));font-size:.9rem}
+.msg.ok{background:color-mix(in srgb,var(--pro) 14%,var(--card))}
+.ordl{display:flex;flex-direction:column;gap:6px}
+.ordr{display:grid;grid-template-columns:1fr auto auto;gap:6px;align-items:center;padding:8px 10px;border:1.5px solid var(--rule);border-radius:10px;background:var(--card2);font-size:.88rem}
+.ordr button{width:36px;height:36px;border-radius:10px;border:1.5px solid var(--rule);background:var(--card)}
+.ordr button:disabled{opacity:.35}
+.pmt{width:100%;border-collapse:collapse;font-size:.82rem}
+.pmt th,.pmt td{padding:4px 2px;text-align:center;border-bottom:1px solid var(--rule)}
+.pmt th:first-child,.pmt td:first-child{text-align:left}
+.pmt button{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--rule);background:var(--card);font:700 .9rem var(--f-m)}
+.pmt button[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.done-row{display:flex;gap:8px;align-items:flex-start;font-size:.88rem;padding:6px 0;border-bottom:1px dashed var(--rule)}
+.tg{flex:none;font:600 .66rem var(--f-m);text-transform:uppercase;border-radius:6px;padding:3px 6px;background:var(--card2);border:1px solid var(--rule)}
+.tg.pro{background:var(--pro);color:var(--card);border-color:var(--pro)}
+.tg.cln{color:var(--ink2)}
+.tg.con{background:var(--con);color:var(--card)}
+.elog{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px;font-size:.85rem;max-height:14em;overflow:auto}
+.elog .n,.log2 .n{font:600 .7rem var(--f-m);color:var(--ink2);margin-right:6px}
+.rcards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.rc{text-align:left;border:1.5px solid var(--rule);border-radius:12px;background:var(--card2);padding:10px}
+.rc b{display:block}.rc small{color:var(--ink2)}
+.rc[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}.rc[aria-pressed="true"] small{color:var(--card);opacity:.8}
+.rdet,.cdet{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--card2);font-size:.9rem}
+.rdet p,.cdet p{margin:.2em 0}
+.catg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;max-height:20em;overflow:auto;margin-top:8px}
+@media (min-width:600px){.catg{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.cat{text-align:left;border:1.5px solid var(--rule);border-radius:10px;background:var(--card2);padding:8px;font-size:.82rem}
+.cat b{display:block}.cat small{color:var(--ink2)}
+.cat[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}.cat[aria-pressed="true"] small{color:var(--card);opacity:.8}
+.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.stp{border:1.5px solid var(--rule);border-radius:10px;background:var(--card2);padding:8px 4px;font:600 .74rem var(--f-b)}
+.stp[aria-current="step"]{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.q{padding:10px;border:1px solid var(--rule);border-radius:10px;background:var(--card2);display:flex;flex-direction:column;gap:6px}
+.q p{margin:0;font-weight:600;font-size:.92rem}
+.opt{text-align:left;border:1.5px solid var(--rule);border-radius:10px;background:var(--card);padding:8px 10px;font-size:.88rem}
+.opt.right{border-color:var(--pro);background:color-mix(in srgb,var(--pro) 16%,var(--card))}
+.opt.wrong{border-color:var(--con);background:color-mix(in srgb,var(--con) 14%,var(--card))}
+.eps{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:5px}
+.ep{border:1.5px solid var(--ink2);border-radius:8px;background:var(--card2);padding:8px 0;font:700 .82rem var(--f-m)}
+.ep.soon{border-style:dashed;color:var(--ink2)}
+.ep[aria-current="true"]{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.facts{display:flex;flex-wrap:wrap;gap:6px}
+.fact{border:1px solid var(--rule);border-radius:999px;padding:4px 10px;font:500 .78rem var(--f-m);background:var(--card2)}
+.host summary{cursor:pointer;font:700 1rem var(--f-d)}
+.host table{width:100%;border-collapse:collapse;font-size:.86rem;min-width:520px}
+.host th,.host td{text-align:left;padding:6px;border-bottom:1px solid var(--rule);vertical-align:top}
+.host .tw{overflow-x:auto}
+.say{margin:.6em 0;padding:.5em .8em;border-left:3px solid var(--acc);background:var(--card2);border-radius:0 8px 8px 0}
+.say b{display:block;font:600 .7rem var(--f-m);text-transform:uppercase;color:var(--ink2)}
+.fine{font-size:.78rem;color:var(--ink2);margin:14px 0 0}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header class="hud">
+  <div class="hud-top">
+    <p class="hud-title"><small>Сезон 4 · эпизод 31</small>Бот обещал</p>
+    <div class="timer"><b id="h-time" aria-label="Таймер дела">25:00</b>
+      <button class="ibtn" id="h-start" aria-label="Запустить таймер"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></button>
+      <button class="ibtn" id="h-reset" aria-label="Начать сначала"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 3-6.2M4 4v5h5"/></svg></button>
+    </div>
+  </div>
+  <div class="stats" id="h-stats"></div>
+</header>
+
+<section id="v-detective" class="view">
+  <div class="grid">
+    <details class="card brief span2" open>
+      <summary><div><p class="kick">Дело 31 · сыщик · сезон 4</p><h1>Бот обещал</h1></div></summary>
+      <p>Вторник, 10:10. К компании «Попутчик» пришёл клиент с перепиской, где её чат-бот пообещал вернуть всю сумму за отменённую поездку. По условиям на сайте возврат только частичный. Руководство спрашивает: «Это же просто программа. Мы обязаны выполнять то, что она написала?»</p>
+    </details>
+    <div class="card">
+      <h2>Доска улик</h2>
+      <div class="pills" id="d-vw" role="group" aria-label="Виды данных"></div>
+      <div class="mapwrap" id="d-map"></div>
+      <div class="legend"><span class="st-unk"><i></i>неизвестно</span><span class="st-sus"><i></i>подозрительно</span><span class="st-con"><i></i>подтверждено</span><span class="st-pro"><i></i>защищено</span><span class="st-cln"><i></i>чисто</span></div>
+      <div id="d-banner" role="status"></div>
+    </div>
+    <div class="card">
+      <h2>Гипотезы <span class="cnt" id="d-hcnt"></span></h2>
+      <div class="hlist" id="d-hyp"></div>
+    </div>
+    <div class="card">
+      <h2>Меры <span class="cnt" id="d-kcnt"></span></h2>
+      <div class="mgrid" id="d-k"></div>
+    </div>
+    <div class="card">
+      <h2>Хронология дела</h2>
+      <ol class="log" id="d-log" aria-live="polite"></ol>
+    </div>
+    <div class="card span2">
+      <h2>Нить досье <span class="cnt" id="d-keys"></span></h2>
+      <div class="board" id="d-board"><div class="pins" id="d-pins"></div><svg class="thread" id="d-thread" aria-hidden="true"></svg></div>
+      <div class="boardbar"><button class="btn sig" id="d-link" disabled>Связать нитью</button><small>Выберите две карточки. Слабое место связывают с путём к нему, след — со следом того же автора.</small></div>
+    </div>
+    <details class="card host span2" id="d-host"></details>
+  </div>
+  <p class="fine">Учебная модель: вымышленные люди, компании и документы. Приёмы описаны обобщённо, без инструкций.</p>
+</section>
+
+<section id="v-engineer" class="view" hidden>
+  <div class="grid">
+    <div class="card span2"><h2>Стенд: бот обещал <span class="cnt" id="e-count">0 из 4</span></h2>
+      <p style="margin:0 0 10px;color:var(--ink2)">Четыре опыта: ответ бота, журнал бота, кто за что отвечает и разговор с командой. Находки уходят к сыщику.</p>
+      <button class="btn" id="e-reset">Опыты заново</button></div>
+    <div class="card bench" style="--lab:var(--sw)"><h2>Аппаратная · ответ бота</h2><div class="rows" id="e-hw"></div></div>
+    <div class="card bench" style="--lab:var(--hw)"><h2>Программная · журнал бота</h2><div class="rows" id="e-sw"></div></div>
+    <div class="card bench" style="--lab:var(--dt)"><h2>Данные · кто за что отвечает</h2><div class="rows" id="e-dt"></div></div>
+    <div class="card bench" style="--lab:var(--acc)"><h2>Знания · разговор с командой</h2><div class="rows" id="e-cl"></div></div>
+    <div class="card span2"><h2>Протокол</h2>
+      <div class="grid"><div><ol class="elog" id="e-log" aria-live="polite"></ol></div><div id="e-out"></div></div></div>
+  </div>
+</section>
+
+<section id="v-player" class="view" hidden>
+  <div class="grid">
+    <div class="card span2"><h2>Памятка участника</h2>
+      <p style="margin:0 0 10px;color:var(--ink2)">Эпизод 31, сезон 4: бот обещал. Слова бота — слова компании, деньги решает человек.</p>
+      <div class="sheet-row"><a class="btn sig" href="#detective" style="text-decoration:none">Играть эпизод 31</a><a class="btn" href="#engineer" style="text-decoration:none">Стенд лабораторий</a></div></div>
+    <div class="card"><h2>Роль</h2><div class="rcards" id="p-roles"></div><div class="rdet" id="p-rdet"></div></div>
+    <div class="card"><h2>Моё дело</h2><div class="rows" id="p-prog"></div></div>
+    <div class="card"><h2>Как ходить</h2><div class="steps" id="p-steps"></div><div class="rdet" id="p-sdet"></div>
+      <div class="sheet-row" style="margin-top:8px"><button class="btn" id="p-prev">Назад</button><button class="btn" id="p-next">Дальше</button></div></div>
+    <div class="card"><h2>Проверьте себя</h2><div class="rows" id="p-quiz"></div></div>
+    <div class="card span2"><h2>Каталог слабых мест</h2><div class="chips" id="p-cf"></div><div class="catg" id="p-cat"></div><div class="cdet" id="p-cdet"></div></div>
+    <div class="card"><h2>Сезон 4: эпизоды 25–32</h2><div class="eps" id="p-eps"></div><div class="rdet" id="p-edet"></div></div>
+    <div class="card"><h2>Правила и режимы</h2>
+      <div class="facts"><span class="fact">25 минут</span><span class="fact">14 часов</span><span class="fact">слова бота — слова компании</span><span class="fact">деньги решает человек</span><span class="fact">сверка с базой условий</span><span class="fact">без наказаний</span></div>
+      <div class="chips" id="p-modes" style="margin-top:10px"></div><div class="rdet" id="p-mdet"></div></div>
+  </div>
+</section>
+</div>
+
+<nav class="dock" aria-label="Роли">
+  <div class="dock-in">
+    <a class="tab" href="#detective" data-r="detective"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>Сыщик</a>
+    <a class="tab" href="#engineer" data-r="engineer"><svg viewBox="0 0 24 24"><path d="M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3M8 3h8"/></svg>Инженер</a>
+    <a class="tab" href="#player" data-r="player"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Участник</a>
+  </div>
+</nav>
+
+<div class="sheet" id="sheet" hidden><div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="s-title" id="s-card"></div></div>
+<div class="toast-wrap"><div id="toast" role="status" aria-live="polite"></div></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="i-pc" viewBox="0 0 48 48"><rect x="6" y="8" width="36" height="25" rx="3"/><path d="M24 33v7M15 40h18"/></symbol>
+<symbol id="i-phone" viewBox="0 0 48 48"><rect x="14" y="5" width="20" height="38" rx="4"/><path d="M21 37h6"/></symbol>
+<symbol id="i-cloud" viewBox="0 0 48 48"><path d="M14 35a8 8 0 0 1 1-16 10 10 0 0 1 19 3 7 7 0 0 1 0 13z"/></symbol>
+<symbol id="i-mail" viewBox="0 0 48 48"><rect x="6" y="11" width="36" height="26" rx="2"/><path d="M6 13l18 14 18-14"/></symbol>
+<symbol id="i-lock" viewBox="0 0 48 48"><rect x="11" y="21" width="26" height="20" rx="2"/><path d="M16 21v-6a8 8 0 0 1 16 0v6"/></symbol>
+<symbol id="i-doc" viewBox="0 0 48 48"><path d="M12 5h17l8 8v30H12z"/><path d="M17 20h14M17 27h14M17 34h9"/></symbol>
+<symbol id="i-camera" viewBox="0 0 48 48"><rect x="5" y="14" width="30" height="20" rx="3"/><circle cx="28" cy="24" r="6"/></symbol>
+<symbol id="i-person" viewBox="0 0 48 48"><circle cx="24" cy="16" r="7"/><path d="M10 42c2-9 8-13 14-13s12 4 14 13"/></symbol>
+<symbol id="i-coin" viewBox="0 0 48 48"><circle cx="24" cy="24" r="17"/><path d="M24 14v20M29 18h-7a3 3 0 0 0 0 6h4a3 3 0 0 1 0 6h-7"/></symbol>
+<symbol id="i-puzzle" viewBox="0 0 48 48"><path d="M10 14h9a4 4 0 1 1 8 0h9v9a4 4 0 1 0 0 8v9H27a4 4 0 1 0-8 0h-9V31a4 4 0 1 0 0-8z"/></symbol>
+<symbol id="i-car" viewBox="0 0 48 48"><path d="M8 30l3-10a4 4 0 0 1 4-3h18a4 4 0 0 1 4 3l3 10v8H8z"/><circle cx="15" cy="38" r="3"/><circle cx="33" cy="38" r="3"/><path d="M12 25h24"/></symbol>
+<symbol id="i-speaker" viewBox="0 0 48 48"><rect x="8" y="14" width="32" height="22" rx="10"/><circle cx="18" cy="25" r="4"/><circle cx="30" cy="25" r="4"/></symbol>
+<symbol id="i-news" viewBox="0 0 48 48"><rect x="6" y="9" width="36" height="30" rx="2"/><path d="M12 16h24M12 23h11M12 30h11M28 23h8v7h-8z"/></symbol>
+</defs></svg>
+<script>
+(() => {
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+let toastT = null;
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3800); }
+const fmt = s => String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0');
+const ST = { unk: 'неизвестно', sus: 'подозрительно', con: 'подтверждено', pro: 'защищён', cln: 'чисто' };
+const LAB = {
+  hw: { n: 'Аппаратная', d: 'бот, модель, ответы', c: 'var(--hw)' },
+  sw: { n: 'Программная', d: 'журнал, база условий, передача', c: 'var(--sw)' },
+  dt: { n: 'Данные', d: 'переписка, люди, правила', c: 'var(--dt)' }
+};
+const VIEWS = { net: 'Связи', chat: 'Переписка', policy: 'Полномочия', time: 'Время' };
+const HY = [
+  { id: 'H1', c: 'Г-01', t: 'Клиент предъявил переписку: бот пообещал вернуть полную сумму', d: 'Вторник, 10:10. Компания «Попутчик».', n: 'У1', lab: 'dt', ok: 1, tm: 'вт 10:10', tn: 60, r: 'Клиент пришёл с перепиской, где чат-бот компании пообещал вернуть всю сумму за отменённую поездку. По условиям на сайте возврат возможен только частично.' },
+  { id: 'H2', c: 'Г-02', t: 'Переписка поддельная, клиент её придумал', d: 'Может, это выдумка клиента?', n: 'У1', lab: 'dt', ok: 0, ins: 1, r: 'Переписка есть в журнале самого бота, время и номер сеанса совпадают. Подделки нет. Это находка: искать надо в том, как бот устроен и что ему разрешено.' },
+  { id: 'H3', c: 'Г-03', t: 'Бот действительно написал это обещание', d: 'Что именно сказал бот?', n: 'У4', lab: 'dt', ok: 1, preRej: 'H2', view: 'chat', tm: 'вт 09:40', tn: 30, r: 'Бот ответил уверенно и сослался на правило, которого нет в условиях. Ответ вежливый, оформлен как твёрдое обещание, без оговорки о том, что ответ даёт бот.' },
+  { id: 'H4', c: 'Г-04', t: 'Бот составляет правдоподобный ответ, а не читает правила', d: 'Почему он выдал несуществующее условие?', n: 'У2', lab: 'hw', ok: 1, pre: 'H3', r: 'Модель складывает ответ, похожий на правильный. Если условия под рукой нет, она может выдать правдоподобное, но неверное. Это свойство, которое учитывают, а не удивление.' },
+  { id: 'H5', c: 'Г-05', t: 'Полномочия бота не были ограничены: обещать деньги ему не запрещено', d: 'Что боту разрешали и запрещали?', n: 'У5', lab: 'dt', ok: 1, pre: 'H3', view: 'policy', tm: 'вт 09:55', tn: 45, r: 'Нигде не было сказано, что бот не вправе обещать возвраты и скидки, и не было границ по суммам. Для клиента он говорит от имени компании.' },
+  { id: 'H6', c: 'Г-06', t: 'Ответы не сверялись с базой условий, денежные вопросы человеку не передавались', d: 'Почему никто не остановил?', n: 'У7', lab: 'sw', ok: 1, pre: 'H5', r: 'Бот отвечал сразу, без сверки с базой условий и без передачи человеку, даже когда речь шла о деньгах. Одна проверка «возврат — зовём человека» остановила бы обещание.' },
+  { id: 'H7', c: 'Г-07', t: 'Клиент виноват: он должен был прочитать условия на сайте', d: 'Условия же есть.', n: 'У8', lab: 'dt', ok: 0, legal: 1, r: 'Клиент спросил в официальном чате и получил ответ от имени компании. Читать условия «на всякий случай» вместо ответа бота никто не ожидает. Виновата организация бота.' },
+  { id: 'H8', c: 'Г-08', t: 'Это ошибка модели, бот сам по себе, компания не отвечает', d: 'Свалим на модель.', n: 'У1', lab: 'sw', ok: 0, r: 'Для клиента бот — голос компании. Отвечать за его слова приходится компании, а не модели. Надёжнее ограничить бота, чем объяснять, что он «сам».' },
+  { id: 'H9', c: 'Г-09', t: 'Решение о деньгах принимала машина без человека', d: 'Кто решил, что возврат полный?', n: 'У3', lab: 'dt', ok: 1, key: 'K2', r: 'Как с помощником (дело 27) и платежом (дело 26): деньги сдвинулись по решению без человека. Всё, что касается денег, проходит второй проверкой людьми.' },
+  { id: 'H10', c: 'Г-10', t: '«Подмастерье» массово собирает обещания клиентских ботов для споров', d: 'Не один ли это случай?', n: 'У9', lab: 'dt', ok: 1, key: 'K3', r: 'Такие переписки приходили сразу в несколько компаний с одинаковым почерком обращений. Это конвейер, который превращает ошибки ботов в споры по заказу.' },
+  { id: 'H11', c: 'Г-11', t: 'Можно исправить: признать разумное, ограничить бота, передавать деньги людям', d: 'Что сделать в первые часы?', n: 'У7', lab: 'sw', ok: 1, pre: 'H6', tm: 'вт 11:30', tn: 140, r: 'Клиенту отвечают честно и предлагают разумное решение, бота ограничивают, денежные темы передают людям. Остальные переписки с похожими ответами проверяют.' },
+  { id: 'H12', c: 'Г-12', t: 'В журнале бота нет передачи человеку и нет сверки с базой условий', d: 'Что видно в журнале?', n: 'У6', lab: 'sw', ok: 1, pre: 'H1', view: 'time', tm: 'вт 10:00', tn: 50, r: 'Журнал показывает ответ без пометки «проверено по базе» и без передачи человеку. Для других вопросов пометки есть, для денежных нет.' }
+];
+const CHAIN = HY.filter(h => h.tn !== undefined).map(h => h.id);
+const MS = [
+  { id: 'M1', c: 'М-01', t: 'Группа: поддержка, юрист, безопасность и поставщик бота', needs: 'H1' },
+  { id: 'M2', c: 'М-02', t: 'Сохранить переписку, журнал бота и базу условий', needs: null },
+  { id: 'M3', c: 'М-03', t: 'Передавать вопросы о деньгах человеку и убрать обещания из ответов бота', needs: 'H3', pre: ['M2'], v: ['В-01', 'Бота отключили и журнал очистили, не сохранив переписку: что и кому он обещал, теперь неизвестно.', { h: 2, i: 10 }] },
+  { id: 'M4', c: 'М-04', t: 'Сверять ответы с базой условий, а обещания возвратов выдавать только через человека', needs: 'H6', pre: ['M3'], v: ['В-02', 'Проверку включили, пока бот ещё обещает: клиент получил ещё одно обещание.', { t: 1 }] },
+  { id: 'M5', c: 'М-05', t: 'Разбор без наказаний: оператор нашёл переписку и сообщил', needs: 'H12' },
+  { id: 'M6', c: 'М-06', t: 'Правила: что бот может обещать, а что нет', needs: 'H5' },
+  { id: 'M7', c: 'М-07', t: 'Передать юристам и поставщику бота журналы по описи', needs: 'H4', pre: ['M2'], v: ['В-03', 'Передали без копий и описи: журнал нельзя подтвердить.', { i: 15 }] },
+  { id: 'M8', c: 'М-08', t: 'Ответить клиенту честно, предложить разумное решение и проверить другие переписки', needs: 'H11' },
+  { id: 'M9', c: 'М-09', t: 'Правило: слова бота — слова компании', needs: 'H4' },
+  { id: 'M10', c: 'М-10', t: 'Отказать клиенту: «это ошибка модели, компания не отвечает»', needs: null, decoy: 1 },
+  { id: 'M11', c: 'М-11', t: 'Пометка «ответ бота» и кнопка «позвать человека»', needs: 'H5' },
+  { id: 'M12', c: 'М-12', t: 'Реестр обещаний бота и ежедневный просмотр человеком', needs: 'H9' }
+];
+const codeOf = id => HY.find(h => h.id === id).c;
+const NODE = {
+  U3: { n: 'У3', t: 'База условий', x: 100, y: 55, i: 'doc' },
+  U4: { n: 'У4', t: 'Переписка клиента', x: 330, y: 55, i: 'news' },
+  U9: { n: 'У9', t: 'Почерк «Подмастерья»', x: 550, y: 55, i: null },
+  U2: { n: 'У2', t: 'Чат-бот', x: 100, y: 215, i: 'cloud' },
+  U1: { n: 'У1', t: 'Обещание клиенту', x: 330, y: 215, i: 'coin' },
+  U8: { n: 'У8', t: 'Клиент', x: 550, y: 215, i: 'person' },
+  U5: { n: 'У5', t: 'Полномочия', x: 100, y: 375, i: 'lock' },
+  U7: { n: 'У7', t: 'Передача человеку', x: 330, y: 375, i: 'person' },
+  U6: { n: 'У6', t: 'Журнал бота', x: 550, y: 375, i: 'doc' }
+};
+const LINK = {
+  L01: { a: 'U3', b: 'U2' }, L02: { a: 'U2', b: 'U4' }, L03: { a: 'U4', b: 'U1' }, L04: { a: 'U1', b: 'U5' }, L05: { a: 'U1', b: 'U8' },
+  L06: { a: 'U6', b: 'U1' }, L07: { a: 'U1', b: 'U7' }, L08: { a: 'U9', b: 'U3' }, L10: { a: 'U9', b: 'U2' }
+};
+const NS = {
+  U1: { h: ['H1', 'H2', 'H8'], con: ['H1'], pro: ['M3'] },
+  U2: { h: ['H4'], con: ['H4'], pro: ['M9'] },
+  U3: { h: ['H9'], con: ['H9'], pro: ['M12', 'M8'] },
+  U4: { h: ['H3'], con: ['H3'], pro: ['M11'] },
+  U5: { h: ['H5'], con: ['H5'], pro: ['M6'] },
+  U6: { h: ['H12'], con: ['H12'], pro: ['M2'] },
+  U7: { h: ['H6', 'H11'], con: ['H6', 'H11'], pro: ['M4'] },
+  U8: { h: ['H7'], con: [], pro: ['M5'] },
+  U9: { h: ['H10'], con: ['H10'] }
+};
+const LS = {
+  L01: { h: ['H9'], con: ['H9'], pro: ['M12'] }, L02: { h: ['H4'], con: ['H4'], pro: ['M9'] }, L03: { h: ['H3'], con: ['H3'], pro: ['M11'] }, L04: { h: ['H5'], con: ['H5'], pro: ['M6'] }, L05: { h: ['H7'], con: [], pro: ['M5'] },
+  L06: { h: ['H12'], con: ['H12'], pro: ['M2'] }, L07: { h: ['H6'], con: ['H6'], pro: ['M4'] }, L08: { h: ['H10'], con: ['H10'] }, L10: { h: ['H10'], con: ['H10'] }
+};
+const THREAT = ['U1', 'U5', 'U8', 'U2', 'U7', 'U4'];
+const DOS = [
+  { id: 'D1', k: 'weak', ep: 27, t: 'Лишние права помощника: он действовал сам' },
+  { id: 'D2', k: 'weak', ep: 26, t: 'Платёж выше порога по одной подписи' },
+  { id: 'D3', k: 'path', ep: 25, t: 'Письмо без ошибок: проверять просьбу и канал, а не язык' },
+  { id: 'D4', k: 'trace', ep: 23, t: 'Объявление «Наём под ключ: личность, резюме, адрес»' },
+  { id: 'D5', k: 'weak', ep: 30, t: 'Правил про ИИ-сервисы и безопасного варианта нет' },
+  { id: 'D6', k: 'weak', ep: 28, t: 'Чужое открыто там, где есть данные и сеть' },
+  { id: 'D7', k: 'trace', ep: 24, t: 'Улики без описи и контрольных сумм' },
+  { id: 'D8', k: 'trace', ep: 31, t: 'Бот выдал условие, которого нет в правилах', after: 'H4' },
+  { id: 'D9', k: 'weak', ep: 31, t: 'Бот без ограничений на обещания и суммы', after: 'H5' },
+  { id: 'D10', k: 'weak', ep: 31, t: 'Ответы не сверяются с базой, человека для денег нет', after: 'H6' }
+];
+const RULES = [
+  { k: 'K1', ids: ['D5', 'D6'], t: 'Правил и границ нет: машина действует по умолчанию, там, где её никто не ограничил.' },
+  { k: 'K2', ids: ['D1', 'D2'], t: 'Решение о деньгах без второго человека: помощник действовал сам, платёж шёл по одной подписи (дела 26, 27).' },
+  { k: 'K3', ids: ['D3', 'D4'], t: 'Письмо без ошибок и «наём под ключ»: «Подмастерье» продаёт готовую убедительность.' },
+  { k: 'K4', ids: ['D8', 'D9'], t: 'Бот выдаёт несуществующее условие, а запрета на обещания нет: ошибка превращается в обязательство.' },
+  { k: 'K5', ids: ['D10', 'D1'], t: 'Ответ без сверки и без человека: тот же лишний доступ, что у помощника в деле 27.' },
+  { k: 'K6', ids: ['D7', 'D1'], t: 'Переписку и журнал сохранять по описи: иначе спор не разобрать.' }
+];
+const CONCL = [
+  { id: 'c1', t: 'Переписка настоящая: бот составил правдоподобный ответ с несуществующим условием, а полномочия на обещания не были ограничены, ответы не сверялись с базой условий и деньги не передавались человеку. Слова бота — слова компании, «ошибка модели» не довод. Клиент не виноват, оператор, нашедший переписку, тоже. Переписку и журнал сохранить по описи, денежные вопросы передавать человеку, сверять ответы с базой, пометка «ответ бота», кнопка «позвать человека», реестр обещаний, честный ответ клиенту, проверить другие переписки. «Подмастерье» собирает такие обещания для споров', ok: 1 },
+  { id: 'c2', t: 'Переписка поддельная, клиент её придумал' },
+  { id: 'c3', t: 'Клиент виноват: нужно было читать условия на сайте' },
+  { id: 'c4', t: 'Это ошибка модели, компания за слова бота не отвечает' }
+];
+const X0 = 0, X1 = 150;
+const LANES = ['Вопрос', 'Ответ бота', 'Полномочия', 'Клиент', 'Компания'];
+const NOISE = [[10, 20, 100], [35, 38, 42], [48, 55, 70], [62, 66, 80], [120, 130, 145]];
+const KEYEV = { H3: [1, 'ответ бота'], H5: [2, 'нет границ'], H1: [3, 'переписка'], H11: [4, 'исправление'] };
+const ALWAYS = ['H1'];
+const ADV = [['Источник ответа', 'база условий', 'условие, которого нет', 1], ['Ссылка на правило', 'есть', 'нет', 1], ['Уверенность', 'с оговоркой', 'твёрдое обещание', 1], ['Пометка «ответ бота»', 'есть', 'нет', 1], ['Передача человеку при деньгах', 'есть', 'нет', 1], ['Вежливость', 'вежливый', 'вежливый', 0]];
+function chatSVG() {
+  let s = '<svg viewBox="0 0 660 450" role="img" aria-label="Ответ бота клиенту по шести признакам: источник, ссылка, уверенность, пометка, передача человеку, вежливость"><text x="20" y="26" style="font:700 13px var(--f-m);fill:var(--ink2)">ОТВЕТ БОТА · ЧТО ВИДНО В ПЕРЕПИСКЕ</text>';
+  ADV.forEach((r, i) => { const y = 42 + i * 66, hl = r[3] && G.conf.has('H3'); s += `<rect x="16" y="${y}" width="628" height="58" rx="10" style="fill:var(--card);stroke:${hl ? 'var(--con)' : 'var(--rule)'};stroke-width:${hl ? 2.5 : 1}"/><text x="30" y="${y + 25}" style="font:600 11px var(--f-m);fill:var(--ink2)">${r[0].toUpperCase()}</text><text x="30" y="${y + 45}" style="font:600 12px var(--f-b);fill:var(--ink)">в ответе: ${r[2]}</text>`; });
+  return s + '</svg>';
+}
+const PKG = [['Что бот вправе обещать', 'ничего о деньгах', 'не сказано', 1], ['Границы по суммам', 'есть', 'нет', 1], ['Сверка с базой условий', 'есть', 'нет', 1], ['Передача человеку', 'для денег', 'нет', 1], ['Просмотр обещаний человеком', 'ежедневно', 'нет', 1], ['Журнал', 'ведётся', 'ведётся', 0]];
+function policySVG() {
+  let s = '<svg viewBox="0 0 660 450" role="img" aria-label="Полномочия бота по шести пунктам: что вправе обещать, границы, сверка, передача, просмотр, журнал"><text x="20" y="26" style="font:700 13px var(--f-m);fill:var(--ink2)">ПОЛНОМОЧИЯ БОТА · ЧТО ЗАДАНО</text>';
+  PKG.forEach((r, i) => { const y = 42 + i * 66, hl = r[3] && G.conf.has('H5'); s += `<rect x="16" y="${y}" width="628" height="58" rx="10" style="fill:var(--card);stroke:${hl ? 'var(--con)' : 'var(--rule)'};stroke-width:${hl ? 2.5 : 1}"/><text x="30" y="${y + 25}" style="font:600 11px var(--f-m);fill:var(--ink2)">${r[0].toUpperCase()}</text><text x="30" y="${y + 45}" style="font:600 12px var(--f-b);fill:var(--ink)">нужно: ${r[1]} · у нас: ${r[2]}</text>`; });
+  return s + '</svg>';
+}
+function timeSVG() {
+  const X = t => 110 + (t - X0) / (X1 - X0) * 530, Y = i => 66 + i * 60;
+  let s = '<svg viewBox="0 0 660 450" role="img" aria-label="Вторник: вопрос, ответ бота, полномочия, клиент и компания">';
+  ['09:10', '10:10', '11:10'].forEach((dn, k) => { const t = [0, 60, 120][k]; s += `<line x1="${X(t)}" x2="${X(t)}" y1="40" y2="410" style="stroke:var(--rule)"/><text x="${X(t) + 4}" y="430" style="font:500 11px var(--f-m);fill:var(--ink2)">${dn}</text>`; });
+  LANES.forEach((n, i) => { s += `<text x="104" y="${Y(i) + 4}" text-anchor="end" style="font:600 10px var(--f-b);fill:var(--ink)">${n}</text><line x1="110" x2="640" y1="${Y(i)}" y2="${Y(i)}" style="stroke:var(--rule)"/>`; });
+  NOISE.forEach((a, i) => a.forEach(t => { s += `<circle cx="${X(t)}" cy="${Y(i)}" r="4" style="fill:var(--ink2);opacity:.45"/>`; }));
+  Object.entries(KEYEV).forEach(([id, [lane, txt]]) => {
+    const h = HY.find(x => x.id === id), show = G.conf.has(id) || ALWAYS.includes(id);
+    if (!show) return;
+    s += `<circle cx="${X(h.tn)}" cy="${Y(lane)}" r="7" style="fill:${G.conf.has(id) ? 'var(--con)' : 'var(--sus)'}"/><text x="${Math.min(X(h.tn), 575)}" y="${Y(lane) - 12}" text-anchor="middle" style="font:600 10px var(--f-m);fill:var(--ink)">${h.tm} ${txt}</text>`;
+  });
+  return s + '</svg>';
+}
+let G, iv = null;
+function fresh() {
+  clearInterval(iv); iv = null;
+  G = { hours: 14, trust: 3, integ: 100, thr: 0, view: 'net', seen: new Set(['net']), sel: null, lab: null, conf: new Set(), rej: new Set(), played: new Set(), keys: new Set(), dsel: [], pairs: [], last: null, busy: false, streak: 0, simple: false, over: null, pend: false, concl: null, why: '', log: [], compl: 0, left: 1500, money: 100, run: false, half: false, acts: [] };
+}
+const addLog = (tag, text, tone) => G.log.unshift({ n: G.log.length + 1, tag, text, tone: tone || '' });
+const needAll = a => a.every(k => G.played.has(k));
+const required = () => G.simple ? ['M2', 'M3', 'M5'] : ['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8'];
+const reqOK = () => required().every(g => g.split('|').some(k => G.played.has(k)));
+const stopped = () => G.played.has('M3');
+const simpleHyp = ['H1', 'H2', 'H3', 'H7', 'H8', 'H12'], simpleKeep = ['M2', 'M3', 'M5'];
+const isOut = id => G.simple && !simpleKeep.includes(id);
+function stateOf(d) {
+  if (d.pro && needAll(d.pro)) return 'pro';
+  if (d.con.some(x => G.conf.has(x))) return 'con';
+  if (G.sel && d.h.includes(G.sel)) return 'sus';
+  if (d.h.length && d.h.every(x => G.rej.has(x))) return 'cln';
+  return 'unk';
+}
+const revealed = () => G.conf.has('H10');
+const dimNode = id => G.simple && !['U1', 'U4', 'U6', 'U8'].includes(id);
+function netSVG() {
+  const ring = G.sel ? Object.keys(NS).filter(k => NS[k].h.includes(G.sel)) : [];
+  const thr = THREAT.slice(0, G.thr).filter(id => stateOf(NS[id]) !== 'pro');
+  let s = '<svg viewBox="0 0 660 450" role="img" aria-label="Карта связей: обещание клиенту в середине, база условий, переписка, чат-бот, полномочия, передача человеку, журнал, клиент и скрытый почерк «Подмастерья»">';
+  Object.entries(LINK).forEach(([id, l]) => {
+    if ((id === 'L08' || id === 'L10') && !revealed()) return;
+    const a = NODE[l.a], b = NODE[l.b], mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    s += `<g class="link st-${stateOf(LS[id])}${G.simple && !['L03', 'L06'].includes(id) ? ' dim' : ''}"><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/><g transform="translate(${mx} ${my})"><rect x="-23" y="-10" width="46" height="20" rx="3"/><text class="lc" y="4" text-anchor="middle">Л-${id.slice(2)}</text></g></g>`;
+  });
+  Object.entries(NODE).forEach(([id, n]) => {
+    if (id === 'U9' && !revealed()) {
+      s += `<g class="node veil" transform="translate(${n.x} ${n.y})"><circle class="disc" r="32"/><text y="9" text-anchor="middle">?</text><text class="ns" y="64" text-anchor="middle">скрыт</text></g>`;
+      return;
+    }
+    const st = stateOf(NS[id]);
+    const ico = n.i ? `<use href="#i-${n.i}" x="-17" y="-17" width="34" height="34" class="ico"/>` : `<text y="9" text-anchor="middle" style="font:600 24px var(--f-d);fill:var(--ink)">?</text>`;
+    const tr = thr.includes(id);
+    s += `<g class="node st-${st}${dimNode(id) ? ' dim' : ''}${ring.includes(id) && id !== 'U9' ? ' ring' : ''}${tr ? ' thr' : ''}" transform="translate(${n.x} ${n.y})" role="img" aria-label="${n.n} ${n.t}: ${ST[st]}${tr ? ', под риском' : ''}"><circle class="halo" r="41"/><circle class="disc" r="32"/>${ico}<text class="nl" y="52" text-anchor="middle">${n.n} ${n.t}</text><text class="ns" y="66" text-anchor="middle">${tr ? 'под риском' : ST[st]}</text></g>`;
+  });
+  return s + '</svg>';
+}
+const minOf = t => t;
+function timelineText() {
+  const got = CHAIN.filter(id => G.conf.has(id)).map(id => HY.find(h => h.id === id)).sort((a, b) => a.tn - b.tn);
+  return got.map(h => `${h.tm} ${h.c}`).join(' → ') || 'звеньев нет';
+}
+const conclOK = () => !!(CONCL.find(c => c.id === G.concl) || {}).ok;
+function pts() { return (G.trust === 3 ? 1 : 0) + (G.integ >= 80 ? 1 : 0) + (conclOK() ? 1 : 0) + (['M9', 'M11', 'M12'].filter(m => G.played.has(m)).length >= 2 ? 1 : 0) + (G.thr <= 3 ? 1 : 0) + (G.money === 100 ? 1 : 0); }
+function stars() { return G.simple ? 1 : (pts() >= 5 ? 3 : pts() >= 3 ? 2 : 1); }
+function protocol() {
+  const res = G.over === 'win' ? (G.simple ? 'закрыто с упрощением' : 'закрыто') : 'не закрыто';
+  return ['Сцена 31 «Бот обещал»', 'Человек в контуре: ' + G.money + '%', 'Итог: ' + res, 'Часов осталось: ' + G.hours + ' из 14', 'Доверие: ' + G.trust + ' из 3', 'Целостность улик: ' + G.integ + '%', 'Риск: ' + G.thr + ' из 6', 'Осложнений: ' + G.compl,
+    'Упрощение: ' + (G.simple ? 'да' : 'нет'), 'Подтверждено: ' + ([...G.conf].map(codeOf).join(', ') || 'ничего'), 'Хронология: ' + timelineText(),
+    'Ключей досье: ' + G.keys.size, 'Заключение: ' + (G.concl ? (CONCL.find(c => c.id === G.concl).t) : 'нет'), 'Порядок действий: ' + (G.acts.join(' → ') || 'нет')].join('\n');
+}
+function buzz() { try { const tg = window.Telegram && Telegram.WebApp; if (tg && tg.HapticFeedback && tg.initData) tg.HapticFeedback.impactOccurred('light'); else if (navigator.vibrate) navigator.vibrate(12); } catch (err) { /* без вибрации */ } }
+const note = (cls, inner) => `<div class="note ${cls}">${inner}</div>`;
+function bannerHTML() {
+  if (G.over === 'win') {
+    const n = stars(), ok = conclOK();
+    return note('win', `<b>${G.simple ? 'Деньги переданы людям, оператора поддержали. Прохождение с упрощением.' : 'Деньги переданы людям, ответы сверяются с базой, оператора поддержали, клиент получил честный ответ.'}</b><span class="stars" aria-label="${n} из 3 звёзд">${'★'.repeat(n)}${'☆'.repeat(3 - n)}</span><p>${ok ? 'Заключение верное: переписка настоящая; бот выдал несуществующее условие, а полномочия и проверка отсутствовали. Слова бота — слова компании.' : 'Заключение неточное: вспомните, что сказал бот и какие у него были полномочия.'} Сезон 4 «Автомат», эпизод 31. Дальше — финал, эпизод 32 «Человек в контуре».</p><textarea class="prot-t" id="d-prot" readonly aria-label="Протокол прогона">${protocol()}</textarea><div class="sheet-row"><button class="btn" data-act="copy">Копировать протокол</button><button class="btn" data-act="reset">Сыграть заново</button></div>`);
+  }
+  if (G.over === 'lose') return note('lose', `<b>${G.why}</b><p>Подтверждено: ${[...G.conf].map(codeOf).join(', ') || 'ничего'}.</p><textarea class="prot-t" id="d-prot" readonly aria-label="Протокол прогона">${protocol()}</textarea><div class="sheet-row"><button class="btn" data-act="copy">Копировать протокол</button><button class="btn" data-act="reset">Попробовать снова</button></div>`);
+  if (G.pend) return note('', `<b>Заключение сыщика</b>Обязательные меры стоят. Можно ещё поставить М-09, М-11, М-12 ради звезды: это правила на будущее. Выберите заключение.<div class="concl">${CONCL.map(c => `<button class="btn" data-act="concl" data-v="${c.id}">${c.t}</button>`).join('')}</div>`);
+  if (G.simple) return note('', '<b>Центр сузил задачу до бота и людей</b>«Сначала записи, потом передать деньги человеку, потом поддержка оператора без наказаний.» Сыграйте М-02, М-03, затем М-05.');
+  return note('', '<b>С чего начать</b>Нажмите на гипотезу, выберите лабораторию в открывшейся карточке. Переключайте виды над картой и связывайте досье нитью.');
+}
+const STATS = () => [
+  ['Часы', `${G.hours}/14`, G.hours / 14, 'var(--acc2)'],
+  ['Доверие', `${Math.max(0, G.trust)}/3`, Math.max(0, G.trust) / 3, 'var(--acc)'],
+  ['Улики', G.integ + '%', G.integ / 100, 'var(--pro)'],
+  ['Человек', G.money + '%', G.money / 100, 'var(--sw)'],
+  ['Риск', `${G.thr}/6`, G.thr / 6, 'var(--con)']
+];
+function renderHUD() {
+  $('#h-stats').innerHTML = STATS().map(([k, v, f, c]) => `<div class="stat"><span>${k}</span><b>${v}</b><div class="bar" style="--c:${c}"><i style="width:${Math.round(f * 100)}%"></i></div></div>`).join('');
+  $('#h-time').textContent = fmt(G.left);
+  const sb = $('#h-start'); sb.disabled = !!G.over; sb.setAttribute('aria-label', G.run ? 'Пауза' : 'Запустить таймер');
+  sb.innerHTML = G.run ? '<svg viewBox="0 0 24 24"><path d="M8 5v14M16 5v14"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg>';
+}
+function gateOf(h) {
+  if (h.preRej && !G.rej.has(h.preRej)) return 'ждёт опровержения ' + codeOf(h.preRej);
+  if (h.pre && !G.conf.has(h.pre)) return 'ждёт ' + codeOf(h.pre);
+  if (h.key && !G.keys.has(h.key)) return 'ждёт нить досье';
+  if (h.view && !G.seen.has(h.view)) return 'смотрите вид «' + VIEWS[h.view] + '»';
+  return '';
+}
+function renderDos() {
+  const vis = DOS.filter(d => !d.after || G.conf.has(d.after)), linked = new Set(G.pairs.flat());
+  $('#d-pins').innerHTML = vis.map((d, i) => `<button class="pin${linked.has(d.id) ? ' linked' : ''}" data-d="${d.id}" aria-pressed="${G.dsel.includes(d.id)}" style="--rot:${[-1.5, 1, -0.5, 1.5, -1, 0.5][i % 6]}deg"><b>${d.id} · дело ${d.ep} · ${({ weak: 'слабое место', path: 'путь', trace: 'след' })[d.k]}</b>${d.t}</button>`).join('');
+  $('#d-link').disabled = G.dsel.length !== 2 || !!G.over;
+  $('#d-keys').textContent = 'нитей: ' + G.keys.size;
+  requestAnimationFrame(drawThreads);
+}
+function drawThreads() {
+  const svg = $('#d-thread'), box = $('#d-board'); if (!svg || !box) return;
+  const r0 = box.getBoundingClientRect(); let p = '';
+  G.pairs.forEach(([a, b]) => {
+    const ea = box.querySelector(`[data-d="${a}"]`), eb = box.querySelector(`[data-d="${b}"]`); if (!ea || !eb) return;
+    const ra = ea.getBoundingClientRect(), rb = eb.getBoundingClientRect();
+    const x1 = ra.left + ra.width / 2 - r0.left, y1 = ra.top - r0.top, x2 = rb.left + rb.width / 2 - r0.left, y2 = rb.top - r0.top;
+    const mx = (x1 + x2) / 2, my = Math.max(y1, y2) + 30;
+    p += `<path d="M${x1} ${y1} Q${mx} ${my} ${x2} ${y2}"/>`;
+  });
+  svg.innerHTML = p;
+}
+function render() {
+  if (typeof E !== 'undefined' && E) renderProgress();
+  renderHUD();
+  $('#d-vw').innerHTML = Object.entries(VIEWS).map(([k, v]) => `<button class="pill" data-v="${k}" aria-pressed="${G.view === k}">${v}${G.seen.has(k) || k === 'net' ? '' : '<span class="dot" aria-label="ещё не смотрели"></span>'}</button>`).join('');
+  $('#d-map').innerHTML = ({ net: netSVG, chat: chatSVG, policy: policySVG, time: timeSVG })[G.view]();
+  $('#d-banner').innerHTML = bannerHTML();
+  const open = HY.filter(h => !G.conf.has(h.id) && !G.rej.has(h.id)).length;
+  $('#d-hcnt').textContent = `открыто ${open} из ${HY.length}`;
+  $('#d-hyp').innerHTML = HY.map(h => {
+    const conf = G.conf.has(h.id), rej = G.rej.has(h.id), gate = gateOf(h), out = G.simple && !simpleHyp.includes(h.id);
+    const dis = G.over || conf || rej || !!gate || out;
+    const tag = conf ? '<span class="tag con">подтверждена</span>' : rej ? '<span class="tag">не подтверждена</span>' : out ? '<span class="tag">вне задачи</span>' : gate ? `<span class="tag">${gate}</span>` : '<span class="tag sus">можно проверить</span>';
+    return `<button class="hcard${conf ? ' conf' : ''}${rej ? ' rej' : ''}" data-h="${h.id}"${dis ? ' disabled' : ''}><span class="code">${h.c}<em>${h.n}</em></span><span><b>${h.t}</b><br><small>${h.d}</small></span>${tag.replace('<span class="tag', '<span class="tag')}</button>`;
+  }).join('').replace(/<\/span><\/span><span class="tag/g, '</span></span><span class="tag');
+  $('#d-kcnt').textContent = `поставлено ${G.played.size} из ${MS.length}`;
+  $('#d-k').innerHTML = MS.map(m => {
+    const played = G.played.has(m.id), out = isOut(m.id), lk = (m.needs && !G.conf.has(m.needs)) || out;
+    const st = played ? 'поставлено' : out ? 'вне зоны' : lk ? 'ждёт ' + codeOf(m.needs) : (m.decoy ? 'решение руководства' : 'поставить');
+    return `<button class="mtile${played ? ' done' : ''}" data-m="${m.id}"${(lk || played || G.over) ? ' disabled' : ''}><span class="kcode">${m.c}</span><b>${m.t}</b><em>${st}</em></button>`;
+  }).join('');
+  $('#d-log').innerHTML = G.log.length ? G.log.map(l => `<li class="${l.tone}"><span class="n">№${l.n}</span><b>${l.tag}.</b> ${l.text}</li>`).join('') : '<li>Дело открыто. Журнал пуст.</li>';
+  renderDos();
+}
+function openSheet(id) { G.sel = id; G.lab = null; G.last = null; $('#sheet').hidden = false; renderSheet(); setTimeout(() => { const b = $('#s-card button'); if (b) b.focus(); }, 30); }
+function closeSheet() { $('#sheet').hidden = true; G.sel = null; G.lab = null; G.last = null; G.busy = false; render(); }
+function renderSheet() {
+  const sh = $('#sheet'); if (sh.hidden) return;
+  const card = $('#s-card');
+  if (G.last) {
+    const h = HY.find(x => x.id === G.last.id), L = G.last;
+    const c = L.ok ? 'var(--con)' : L.own ? (L.ins ? 'var(--acc2)' : 'var(--cln)') : 'var(--sus)';
+    const stamp = L.ok ? 'подтверждено' : !L.own ? 'не та лаборатория' : L.ins ? 'опровергнуто — это находка' : 'не подтверждено';
+    const txt = !L.own ? `${LAB[L.lab].n} ничего не нашла: это не её профиль. Потрачено ${L.cost} ч.` : h.r;
+    card.innerHTML = `<div class="grab"></div><p class="kick" style="font:500 .72rem var(--f-m);color:var(--ink2);margin:0 0 4px">${h.c} · ${h.n}</p><h3 id="s-title">${h.t}</h3><div class="result"><div class="face" style="--c:${c}"><span class="stamp">${stamp}</span><p style="margin:0">${txt}</p></div></div><div class="sheet-row"><button class="btn sig" data-act="close">Готово</button></div>`;
+    return;
+  }
+  if (G.busy) { card.innerHTML = '<div class="grab"></div><h3 id="s-title">Лаборатория работает…</h3><div class="working"><i></i>Проверяем гипотезу</div>'; return; }
+  const h = HY.find(x => x.id === G.sel); if (!h) { sh.hidden = true; return; }
+  card.innerHTML = `<div class="grab"></div><p style="font:500 .72rem var(--f-m);color:var(--ink2);margin:0 0 4px">${h.c} · узел ${h.n}${h.legal ? ' · чувствительные данные' : ''}</p><h3 id="s-title">${h.t}</h3><p class="sub">${h.d}</p>
+    <div class="labs">${Object.entries(LAB).map(([k, l]) => `<button class="lab" data-lab="${k}" style="--l:${l.c}" aria-pressed="${G.lab === k}"><b>${l.n}</b><small>${l.d}</small></button>`).join('')}</div>
+    <p class="sub" style="margin:0 0 10px">Своя лаборатория — 1 час, чужая — 2 часа и без результата.${h.legal && !G.played.has('M1') ? ' Без М-01 проверка людей и данных стоит доверия.' : ''}</p>
+    <div class="sheet-row"><button class="btn sig" data-act="check"${G.lab && G.hours >= 1 ? '' : ' disabled'}>Проверить</button><button class="btn" data-act="close">Отмена</button></div>`;
+}
+const HOST = `<summary>Для ведущего: мотивы, источники, вопросы</summary>
+  <div class="tw"><table><tr><th>Слой</th><th>Кто и что</th><th>Зачем</th><th>Как это видно</th></tr>
+  <tr><td>Бот</td><td>Клиентский чат-бот составляет правдоподобные ответы</td><td>Не врёт намеренно: отвечает, как похоже на правильное</td><td>Условие, которого нет в правилах</td></tr>
+  <tr><td>Полномочия</td><td>Не сказано, что бот не вправе обещать возвраты и скидки</td><td>Для клиента бот говорит от имени компании</td><td>Твёрдое обещание без оговорки</td></tr>
+  <tr><td>Проверка</td><td>Нет сверки с базой условий и передачи человеку</td><td>Никто не остановил обещание</td><td>В журнале нет пометок для денежных вопросов</td></tr>
+  <tr><td>Клиент</td><td>Спросил в официальном чате и поверил ответу</td><td>Ведёт себя так, как ожидает компания</td><td>Показал переписку</td></tr>
+  <tr><td>Защита</td><td>Передача денег человеку, сверка с базой, пометка «ответ бота», реестр обещаний, честный ответ клиенту</td><td>Не давать ошибке стать обязательством</td><td>Работает против любой ошибки модели</td></tr></table></div>
+  <p><b>Реальная картина.</b> В 2024 году суд в Канаде обязал авиакомпанию выполнить обещание, которое дал её чат-бот, и не принял довод, что бот «сам по себе». Ранее, в 2023 году, клиентский бот автосалона согласился «продать» машину за доллар в шуточной переписке. Эпизод пересказывает эти случаи на уровне новостей и не воспроизводит приёмов.</p>
+  <p class="say"><b>Начало</b>«Вторник, десять десять. К компании „Попутчик“ пришёл клиент с перепиской, где её бот пообещал вернуть всю сумму за отменённую поездку. По условиям возврат частичный. У вас 14 часов, 25 минут и три единицы доверия».</p>
+  <p class="say"><b>Половина времени</b>«Если не поддержать оператора, о странных ответах бота перестанут сообщать, и следующее обещание узнают только из суда».</p>
+  <p class="say"><b>Победа</b>«Деньги переданы людям, бот ограничен, клиенту ответили честно. Остался последний вопрос сезона: что мы готовы поручить машинам, а что нет. Эпизод 32».</p>
+  <ol><li>Отказался ли игрок от идеи «переписка поддельная» (Г-02)?</li><li>Понял ли, что слова бота — слова компании?</li><li>Попался ли на «ошибка модели» (Г-08, М-10)?</li><li>Не обвинил ли клиента (Г-07)?</li><li>Увидел ли связь с делами 26 и 27 (Г-09)?</li><li>Вопрос: что здесь сделала машина, что человек, кто отвечает за слова бота?</li><li>Вопрос: какие вопросы бот не должен решать сам?</li></ol>`;
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-h],[data-lab],[data-m],[data-act],[data-v],[data-d]'); if (!t) return;
+  if (t.closest('#v-engineer,#v-player')) return;
+  if (t.dataset.h) { if (!G.over) { buzz(); openSheet(t.dataset.h); } }
+  else if (t.dataset.lab) { G.lab = t.dataset.lab; renderSheet(); }
+  else if (t.dataset.m) { buzz(); playM(t.dataset.m); }
+  else if (t.dataset.v !== undefined && t.closest('#d-vw')) {
+    const v = t.dataset.v; G.view = v;
+    if (!G.seen.has(v)) { G.seen.add(v); addLog('Вид', 'Открыт вид «' + VIEWS[v] + '».', 'info'); }
+    render();
+  }
+  else if (t.dataset.d) { const d = t.dataset.d, i = G.dsel.indexOf(d); if (i >= 0) G.dsel.splice(i, 1); else { if (G.dsel.length >= 2) G.dsel.shift(); G.dsel.push(d); } renderDos(); }
+  else if (t.dataset.act === 'check') {
+    G.busy = true; renderSheet(); buzz();
+    setTimeout(() => { G.busy = false; runCheck(); if (!G.last) closeSheet(); else { $('#sheet').hidden = false; renderSheet(); const b = $('#s-card .btn.sig'); if (b) b.focus(); } }, 650);
+  }
+  else if (t.dataset.act === 'close') closeSheet();
+  else if (t.dataset.act === 'concl') { G.concl = t.dataset.v; G.acts.push('Заключение ' + G.concl.slice(1)); addLog('Заключение', 'Выбрано заключение ' + G.concl.slice(1) + '.', conclOK() ? 'ok' : 'warn'); finish('win'); render(); }
+  else if (t.dataset.act === 'reset') { fresh(); render(); }
+  else if (t.dataset.act === 'copy') {
+    const ta = $('#d-prot'); if (!ta) return;
+    const sel = () => { ta.focus(); ta.select(); toast('Текст выделен. Скопируйте его вручную.'); };
+    try { navigator.clipboard.writeText(ta.value).then(() => toast('Протокол скопирован.'), sel); } catch (err) { sel(); }
+  }
+});
+$('#sheet').addEventListener('click', e => { if (e.target.id === 'sheet') closeSheet(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#sheet').hidden) closeSheet(); });
+$('#d-link').addEventListener('click', linkDos);
+$('#h-reset').addEventListener('click', () => { fresh(); $('#sheet').hidden = true; render(); });
+$('#h-start').addEventListener('click', () => { if (G.over) return; G.run = !G.run; clearInterval(iv); if (G.run) iv = setInterval(tick, 1000); render(); });
+addEventListener('resize', () => requestAnimationFrame(drawThreads));
+$('#d-host').innerHTML = HOST;
+function simplify() {
+  G.simple = true; G.sel = null; G.lab = null;
+  addLog('Центр', 'Задача сужена до бота и людей: записи, передача денег человеку, поддержка оператора. Новое задание: М-02, М-03, М-05.', 'warn');
+  toast('Центр сужает задачу. Это тоже прохождение.');
+}
+function finish(kind, why) {
+  G.over = kind; G.why = why || ''; G.run = false; G.pend = false; clearInterval(iv); iv = null;
+  toast(kind === 'win' ? 'Дело закрыто.' : 'Дело не закрыто.');
+}
+function check() {
+  if (G.over) return;
+  if (G.thr >= 6) finish('lose', 'Бот дал новые обещания: споров стало больше, а доверие клиентов упало.');
+  else if (G.integ <= 0) finish('lose', 'Улики потеряны: выводы по ним уже не защитить.');
+  else if (G.trust <= 0) finish('lose', 'Доверие потеряно: руководство отстранило команду от дела.');
+  else if (G.hours <= 0) finish('lose', 'Часы закончились. Давайте посмотрим, что мы узнали.');
+}
+function addThr(n, why) { G.thr = Math.min(6, G.thr + n); addLog('Риск', why + ' Риск: ' + G.thr + ' из 6.', 'warn'); }
+function missStep() { G.streak++; if (G.streak >= 2 && !G.simple) simplify(); }
+function runCheck() {
+  if (G.over || !G.sel || !G.lab || G.hours < 1) return;
+  const h = HY.find(x => x.id === G.sel), labUsed = G.lab, own = [].concat(h.lab).includes(G.lab), cost = Math.min(own ? 1 : 2, G.hours);
+  G.hours -= cost; let miss = false; G.acts.push(h.c);
+  if (!own) { addLog(LAB[G.lab].n, `Лаборатория ничего не нашла по ${h.c}. Потрачено ${cost} ч.`, 'miss'); miss = true; }
+  else {
+    if (h.legal && !G.played.has('M1')) { G.trust--; addLog('Доверие', 'Клиента или оператора назвали виновными до решения о процедуре: минус 1 доверие.', 'warn'); }
+    if (h.ok) {
+      G.conf.add(h.id); G.streak = 0; addLog(LAB[G.lab].n, `${h.c} подтверждена. ${h.r}`, 'ok');
+      (h.excl || []).forEach(x => { if (!G.rej.has(x)) { G.rej.add(x); addLog('Центр', `${codeOf(x)} снята.`, 'info'); } });
+      DOS.filter(d => d.after === h.id).forEach(d => addLog('Досье', `Добавлена карточка ${d.id}: ${d.t}.`, 'info'));
+      if (h.id === 'H10') addLog('Центр', 'Открыт узел У9 «Почерк автора». Появились связи Л-08 и Л-10.', 'info');
+    } else { G.rej.add(h.id); addLog(LAB[G.lab].n, `${h.c} не подтверждена. ${h.r}`, h.ins ? 'info' : 'miss'); miss = !h.ins; if (h.ins) G.streak = 0; }
+  }
+  G.last = { id: h.id, own, ok: own && !!h.ok, lab: labUsed, cost, ins: !!h.ins };
+  G.sel = null; G.lab = null;
+  if (miss) { addThr(1, 'Ложный след: бот всё ещё обещает возвраты.'); missStep(); }
+  check(); render();
+}
+function linkDos() {
+  if (G.over || G.dsel.length !== 2) return;
+  const [a, b] = G.dsel; G.dsel = [];
+  const rule = RULES.find(r => r.ids ? (r.ids.includes(a) && r.ids.includes(b)) : (r.any.includes(a) && r.any.includes(b)));
+  if (rule && G.keys.has(rule.k)) addLog('Досье', 'Эта связь уже найдена.', 'info');
+  else if (rule) { G.keys.add(rule.k); G.pairs.push([a, b]); G.streak = 0; addLog('Досье', `${a} + ${b}: ${rule.t}`, 'ok'); buzz(); toast('Нить натянута: ' + a + ' — ' + b); }
+  else { G.hours = Math.max(0, G.hours - 1); addLog('Досье', `${a} + ${b}: связи нет. Потерян 1 ч.`, 'miss'); missStep(); }
+  check(); render();
+}
+function playM(id) {
+  if (G.over || G.played.has(id)) return;
+  const m = MS.find(x => x.id === id);
+  if (isOut(id)) return;
+  if (m.needs && !G.conf.has(m.needs)) return;
+  if (m.decoy) {
+    G.played.add(id); G.trust -= 2; G.compl++; G.acts.push('М-10(!)');
+    addLog('Наказание', 'Клиенту ответили «ошибка модели, мы не отвечаем». Клиент пошёл в суд и в соцсети, а операторы перестали сообщать о странных ответах бота. Минус 2 доверия.', 'warn'); G.money = Math.min(G.money, 40); addThr(1, 'Отказ рассердил клиента, бот всё ещё обещает.');
+    toast('Отказ вопроса не закрыл.'); check(); render(); return;
+  }
+  const miss = m.pre && m.pre.find(p => !G.played.has(p));
+  if (miss && m.v) {
+    const [code, text, pen] = m.v;
+    if (pen.h) G.hours = Math.max(0, G.hours - pen.h);
+    if (pen.t) G.trust -= pen.t;
+    if (pen.i) G.integ = Math.max(0, G.integ - pen.i);
+    G.compl++; G.acts.push(m.c + '(!)');
+    addLog('Осложнение ' + code, text + ' ' + [pen.h ? 'Минус ' + pen.h + ' ч' : '', pen.t ? 'минус ' + pen.t + ' доверие' : '', pen.i ? 'минус ' + pen.i + '% улик' : ''].filter(Boolean).join(', ') + '. Мера вернулась в руку.', 'warn');
+    toast('Осложнение ' + code + '.'); check(); render(); return;
+  }
+  G.played.add(id); G.acts.push(m.c);
+  addLog('Мера', `${m.c} ${m.t}: поставлено.`, 'ok');
+  if (id === 'M3' && !G.stopLog) { G.stopLog = true; G.thr = Math.max(0, G.thr - 1); addLog('Риск', 'Деньги переданы людям, переписка сохранена: новых обещаний бота нет.', 'info'); }
+  if (id === 'M5' && G.money === 100) addLog('Человек', 'Оператора поддержали, разбор без наказаний: человек остаётся в контуре.', 'ok');
+  if (!G.pend && reqOK()) { G.pend = true; addLog('Центр', 'Обязательные меры стоят. Нужно заключение: что сказал бот и какие у него были полномочия.', 'info'); }
+  else check();
+  render();
+}
+function tick() {
+  if (!G.run || G.over) return;
+  G.left--; const el = 1500 - G.left;
+  if (!G.half && el >= 750) {
+    G.half = true; addLog('Таймер', 'Прошла половина времени. Осталось 12 минут 30 секунд.', 'info'); toast('Прошла половина времени. Осталось 12 минут 30 секунд.');
+    if (!G.played.has('M5')) { G.money = 40; addLog('Человек', 'О странных ответах бота сообщают всё реже: люди боятся наказания. «Человек в контуре» 40%.', 'warn'); toast('Сообщений стало меньше.'); }
+  }
+  if (!G.over && !stopped() && el > 0 && el % 180 === 0) { addThr(1, 'Время идёт: бот может дать ещё обещание.'); check(); }
+  if (!G.simple && !G.over && el >= 900 && G.conf.size === 0) simplify();
+  if (G.left <= 0 && !G.over) finish('lose', 'Время вышло. Давайте посмотрим, что мы узнали.');
+  render();
+}
+
+/* ---------- вкладки ---------- */
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const ROUTES = ['detective', 'engineer', 'player'];
+function route(name) {
+  const h = location.hash.slice(1), r = ROUTES.includes(name) ? name : (ROUTES.includes(h) ? h : 'detective');
+  ROUTES.forEach(x => { $('#v-' + x).hidden = x !== r; }); try { scrollTo(0, 0); } catch (err) { /* ok */ } if (r === 'detective') requestAnimationFrame(drawThreads);
+  $$('.tab').forEach(a => { if (a.dataset.r === r) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+}
+addEventListener('hashchange', () => route());
+document.addEventListener('click', e => {
+  const a = e.target.closest('a[href^="#"]'); if (!a) return;
+  const n = a.getAttribute('href').slice(1); if (!ROUTES.includes(n)) return;
+  e.preventDefault(); route(n);
+  try { if (location.hash.slice(1) !== n) location.hash = n; } catch (err) { /* адрес можно не менять */ }
+});
+
+/* ---------- Инженер лаборатории ---------- */
+const MX = [['Источник ответа', 'база условий', 'выдумал условие', 1], ['Ссылка на правило', 'есть', 'нет', 1], ['Тон', 'с оговоркой', 'твёрдое обещание', 1], ['Передача человеку при деньгах', 'есть', 'нет', 1], ['Пометка «ответ бота»', 'есть', 'нет', 1], ['Вежливость', 'вежливый', 'вежливый', 0]];
+const MDEC = ['Это просто ошибка модели', 'Бот говорит от имени компании: ограничить и передавать деньги человеку', 'Убрать бота навсегда'];
+const SX = [['09:40', 'бот ответил клиенту: «вернём полную сумму»', 1], ['09:41', 'в ответе нет ссылки на условия', 1], ['10:10', 'клиент предъявил переписку', 1], ['10:12', 'в журнале нет передачи человеку и сверки с базой', 1], ['10:30', 'оператор сам сообщил руководству', 0], ['11:30', 'с клиентом связались, бот ограничен', 0]];
+const WHY = ['Не было ограничений на обещания и проверки по базе условий', 'Клиент подделал переписку', 'Бот отвечал слишком медленно'];
+const SIDES = ['Бот', 'Оператор', 'Компания'];
+const RESP = [{ t: 'Составил правдоподобный ответ с обещанием', a: 0 }, { t: 'Заметил переписку и сообщил', a: 1 }, { t: 'Не ограничил обещания бота', a: 2 }, { t: 'Передал переписку руководству', a: 1 }, { t: 'Не поставил проверку по базе условий', a: 2 }, { t: 'Не знал условия и выдумал похожее', a: 0 }];
+const TALK = [
+  { q: 'Бот пообещал клиенту возврат. Чьи это слова?', o: ['Бота, компания ни при чём', 'Компании: бот говорит от её имени', 'Поставщика бота'], a: 1 },
+  { q: 'Что поставить для вопросов о деньгах?', o: ['Ничего', 'Передачу человеку и сверку с базой условий', 'Больше шуток'], a: 1 },
+  { q: 'Что ответить клиенту?', o: ['Это ошибка модели', 'Признать, объяснить и предложить разумное решение', 'Не отвечать'], a: 1 },
+  { q: 'Что с оператором, нашедшим переписку?', o: ['Наказать', 'Поблагодарить, разбор без наказаний', 'Скрыть'], a: 1 },
+  { q: 'Что сделать первым делом?', o: ['Подождать', 'Сохранить переписку и журнал, передать деньги человеку', 'Удалить бота'], a: 1 },
+  { q: 'Что с другими клиентами?', o: ['Ничего', 'Проверить похожие ответы бота', 'Подождать'], a: 1 }
+];
+let E;
+function freshE() {
+  E = { hw: { sel: new Set(), pf: null, msg: '', done: false }, sw: { sel: new Set(), why: null, msg: '', done: false },
+    dt: { r: {}, msg: '', done: false }, kn: { ans: {}, msg: '', done: false }, log: [] };
+}
+const eLog = t => { E.log.unshift(t); E.log = E.log.slice(0, 8); };
+const toggle = (set, i) => { if (set.has(i)) set.delete(i); else set.add(i); };
+function renderE() {
+  const hw = E.hw;
+  $('#e-hw').innerHTML = '<small>Ответ бота. Отметьте, что опасно.</small>' + MX.map((r, i) => `<button class="rrow${hw.sel.has(i) ? ' seen' : ''}" data-act="mx" data-i="${i}" aria-pressed="${hw.sel.has(i)}"><span class="num">${hw.sel.has(i) ? '≠' : '·'}</span><span><b>${r[0]}</b><small>нужно: ${r[1]} · сейчас: ${r[2]}</small></span></button>`).join('') +
+    '<small>Что защищает, если бот вежливый и уверенный?</small><div class="chips">' + MDEC.map((p, i) => `<button class="chip" data-act="pf" data-i="${i}" aria-pressed="${hw.pf === i}">${p}</button>`).join('') + '</div>' +
+    '<div class="chips"><button class="chip" data-act="hwcheck">Проверить</button></div>' + (hw.msg ? `<p class="msg${hw.done ? ' ok' : ''}">${hw.msg}</p>` : '');
+  const sw = E.sw;
+  $('#e-sw').innerHTML = '<small>Журнал бота. Отметьте сигналы.</small>' + SX.map((r, i) => `<button class="rrow${sw.sel.has(i) ? ' seen' : ''}" data-act="sx" data-i="${i}" aria-pressed="${sw.sel.has(i)}"><span class="num">${sw.sel.has(i) ? '✓' : i + 1}</span><span><b>${r[0]}</b><small>${r[1]}</small></span></button>`).join('') +
+    '<small>Почему обещание не остановили?</small><div class="chips">' + WHY.map((w, i) => `<button class="chip" data-act="why" data-i="${i}" aria-pressed="${sw.why === i}">${w}</button>`).join('') + '</div>' +
+    '<div class="chips"><button class="chip" data-act="swcheck">Проверить</button></div>' + (sw.msg ? `<p class="msg${sw.done ? ' ok' : ''}">${sw.msg}</p>` : '');
+  const dt = E.dt;
+  $('#e-dt').innerHTML = '<small>Кто за что отвечает?</small>' + RESP.map((c, i) => `<div class="swrow"><b>${i + 1}. ${c.t}</b><span class="chips">${SIDES.map((x, j) => `<button class="chip" data-act="resp" data-i="${i}" data-v="${j}" aria-pressed="${dt.r[i] === j}">${x}</button>`).join('')}</span></div>`).join('') +
+    '<div class="chips"><button class="chip" data-act="dtcheck">Проверить</button></div>' + (dt.msg ? `<p class="msg${dt.done ? ' ok' : ''}">${dt.msg}</p>` : '');
+  const kn = E.kn;
+  $('#e-cl').innerHTML = TALK.map((l, i) => `<div class="swrow"><b>${i + 1}. ${l.q}</b><span class="chips">${l.o.map((o, j) => `<button class="chip" data-act="talk" data-i="${i}" data-v="${j}" aria-pressed="${kn.ans[i] === j}">${o}</button>`).join('')}</span></div>`).join('') +
+    '<div class="chips"><button class="chip" data-act="kncheck">Проверить</button></div>' + (kn.msg ? `<p class="msg${kn.done ? ' ok' : ''}">${kn.msg}</p>` : '');
+  const n = ['hw', 'sw', 'dt', 'kn'].filter(k => E[k].done).length;
+  $('#e-count').textContent = n + ' из 4';
+  $('#e-log').innerHTML = E.log.length ? E.log.map((t, i) => `<li><span class="n">${E.log.length - i}</span>${t}</li>`).join('') : '<li>Опытов ещё нет.</li>';
+  const rowO = (k, name, txt) => `<div class="done-row"><span class="tg ${E[k].done ? 'pro' : 'cln'}">${E[k].done ? 'готово' : 'ждёт'}</span><span><b>${name}.</b> ${E[k].done ? txt : 'вывод ещё не сделан.'}</span></div>`;
+  $('#e-out').innerHTML = rowO('hw', 'Ответ', 'пять опасных признаков, вежливость не защита.') +
+    rowO('sw', 'Журнал', 'четыре сигнала, человека для денег не было.') +
+    rowO('dt', 'Ответственность', 'бот отвечает, компания отвечает за его слова.') +
+    rowO('kn', 'Разговор', 'деньги человеку, честный ответ, без обвинений.') +
+    (n === 4 ? '<p class="msg ok">Находки готовы. <a href="#detective">Передать сыщику</a></p>' : '');
+  renderProgress();
+}
+$('#v-engineer').addEventListener('click', e => {
+  const t = e.target.closest('[data-act]'); if (!t) return; const a = t.dataset.act, i = +t.dataset.i;
+  if (a === 'mx') { toggle(E.hw.sel, i); E.hw.msg = ''; }
+  else if (a === 'pf') { E.hw.pf = i; E.hw.msg = ''; }
+  else if (a === 'hwcheck') {
+    const exp = MX.map((r, k) => r[3] ? k : -1).filter(k => k >= 0), s = E.hw.sel;
+    const hit = exp.filter(k => s.has(k)).length, extra = [...s].filter(k => !MX[k][3]).length;
+    E.hw.done = hit === exp.length && !extra && E.hw.pf === 1;
+    E.hw.msg = E.hw.done ? 'Верно. Условие выдумано, ссылки нет, тон твёрдый, человек для денег не предусмотрен, пометки нет. Вежливость ничего не доказывает.' : `Признаков найдено ${hit} из ${exp.length}${extra ? ', лишних ' + extra : ''}.` + (E.hw.pf === 1 ? '' : ' Что защищает, если бот вежливый и уверенный?');
+    eLog('Бот: найдено ' + hit + ' из ' + exp.length + '.');
+  }
+  else if (a === 'sx') { toggle(E.sw.sel, i); E.sw.msg = ''; }
+  else if (a === 'why') { E.sw.why = i; E.sw.msg = ''; }
+  else if (a === 'swcheck') {
+    const exp = SX.map((r, k) => r[2] ? k : -1).filter(k => k >= 0), s = E.sw.sel;
+    const hit = exp.filter(k => s.has(k)).length, extra = [...s].filter(k => !SX[k][2]).length;
+    E.sw.done = hit === exp.length && !extra && E.sw.why === 0;
+    E.sw.msg = E.sw.done ? 'Верно. Обещание, ответ без ссылки, переписка у клиента и журнал без передачи человеку — сигналы.' : `Сигналов найдено ${hit} из ${exp.length}${extra ? ', лишних ' + extra : ''}.` + (E.sw.why === 0 ? '' : ' Почему обещание не остановили?');
+    eLog('Журнал бота: найдено ' + hit + ' из ' + exp.length + '.');
+  }
+  else if (a === 'resp') { E.dt.r[i] = +t.dataset.v; E.dt.msg = ''; }
+  else if (a === 'dtcheck') {
+    const ok = RESP.filter((c, k) => E.dt.r[k] === c.a).length;
+    E.dt.done = ok === RESP.length;
+    E.dt.msg = E.dt.done ? 'Верно. Бот составляет ответ, оператор замечает и сообщает, компания отвечает за полномочия и проверку.' : `Верно: ${ok} из ${RESP.length}.`;
+    eLog('Обзор: верно ' + ok + ' из ' + RESP.length + '.');
+  }
+  else if (a === 'talk') { E.kn.ans[i] = +t.dataset.v; E.kn.msg = ''; }
+  else if (a === 'kncheck') {
+    const ok = TALK.filter((l, k) => E.kn.ans[k] === l.a).length;
+    E.kn.done = ok === TALK.length; E.kn.msg = E.kn.done ? 'Порядок выстроен: слова бота — слова компании, деньги человеку, сверка с базой, сохранить журнал, без наказаний.' : `Верно: ${ok} из ${TALK.length}.`;
+    eLog('Решение: верно ' + ok + ' из ' + TALK.length + '.');
+  }
+  renderE();
+});
+$('#e-reset').addEventListener('click', () => { freshE(); renderE(); });
+
+/* ---------- Участник игры ---------- */
+const ROLES = [
+  { k: 'sy', n: 'Сыщик', s: 'от переписки к полномочиям', a: 'Отличает «переписка поддельная» от «бот сказал это», находит, что бот вправе обещать и что проверялось.', tip: 'Опровергните «переписка поддельная»: откроется вид «Переписка».' },
+  { k: 'rz', n: 'Разработчик защиты', s: 'сверка и передача', a: 'Подключает сверку с базой условий, передачу денег человеку, пометку «ответ бота», реестр обещаний.', tip: 'Ошибку модели нельзя исключить, поэтому её не пускают к деньгам.' },
+  { k: 'kt', n: 'Конструктор угроз', s: 'работает в песочнице', a: 'Разбирает, как ошибка бота становится обязательством, и строит защиту. Без приёмов давления на бота.', tip: 'Слова бота — слова компании.' },
+  { k: 'rc', n: 'Руководитель центра', s: 'не сваливает на модель', a: 'Отвечает клиенту честно, поддерживает оператора, не говорит «это ошибка модели».', tip: 'За слова бота отвечает компания.' },
+  { k: 'ai', n: 'ИИ-помощник центра', s: 'читает и предлагает', a: 'Предлагает ответы клиентам, но не обещает возвраты и скидки: это решает человек.', tip: 'Деньги и обязательства — только человек.' }
+];
+const CAT = [
+  { n: 'Повторный пароль', labs: ['dt', 'sw'], sign: 'Один секрет используется в нескольких сервисах.', def: 'Уникальные пароли, менеджер паролей, второй фактор.', ep: 4 },
+  { n: 'Подмена SIM', labs: ['dt'], sign: 'Номер вдруг оказывается на другой карте.', def: 'Блокировка переноса у оператора, не полагаться только на СМС.', ep: 4 },
+  { n: 'Социальная инженерия', labs: ['dt'], sign: 'Человека убеждают сделать действие сами: письмо, звонок «из поддержки».', def: 'Проверка звонящего по известному номеру, правило «сначала перезвони».', ep: 5 },
+  { n: 'Избыточные разрешения', labs: ['sw'], sign: 'Приложение просит больше, чем нужно для работы.', def: 'Минимальные права, периодический пересмотр.', ep: 4 },
+  { n: 'Устаревшее ПО', labs: ['sw', 'hw'], sign: 'Версия отстаёт от выпущенных исправлений.', def: 'Плановые обновления с проверкой после них.', ep: 3 },
+  { n: 'Лишнее доверенное устройство', labs: ['sw'], sign: 'В списке доверенных появилось незнакомое.', def: 'Регулярный просмотр списка, оповещения о новых.', ep: 4 },
+  { n: 'Открытая копия', labs: ['dt'], sign: 'Резервная копия доступна не только владельцу.', def: 'Шифрование копии, ограничение доступа.', ep: 4 },
+  { n: 'Утечка метаданных', labs: ['dt'], sign: 'Файлы несут время и место съёмки.', def: 'Очистка метаданных перед публикацией.', ep: 4 },
+  { n: 'Небезопасная сеть', labs: ['hw', 'sw'], sign: 'Работа через чужую открытую сеть.', def: 'Защищённое соединение, отказ от открытых сетей.', ep: 4 },
+  { n: 'Заводские настройки', labs: ['hw', 'sw'], sign: 'Устройство работает с настройками и паролем по умолчанию.', def: 'Смена настроек и пароля при вводе в работу.', ep: 1 },
+  { n: 'Физический доступ', labs: ['hw'], sign: 'Устройство побывало в чужих руках или порт доступен.', def: 'Пломбы, закрытые порты, учёт устройств.', ep: 4 },
+  { n: 'Побочный эффект обновления', labs: ['sw'], sign: 'Исправление включает лишнюю службу.', def: 'Копия, проверка после обновления, отключение лишнего.', ep: 3 },
+  { n: 'Открытая гостевая сеть', labs: ['sw', 'hw'], sign: 'Сеть без пароля, доступная каждому в радиусе сигнала.', def: 'Пароль, отдельная зона, ограничение по времени.', ep: 5 },
+  { n: 'Нет сегментации сети', labs: ['sw'], sign: 'Гости и устройства офиса видят друг друга.', def: 'Зоны «офис», «гости», «умные устройства», изоляция клиентов.', ep: 5 },
+  { n: 'Двойник точки доступа', labs: ['hw'], sign: 'Рядом работает сеть с тем же именем на другом канале.', def: 'Опись точек, сканирование эфира, защищённое подключение.', ep: 5 },
+  { n: 'Небезопасное умное устройство', labs: ['dt', 'sw'], sign: 'Розетка или лампа отправляет данные, объём которых не соответствует задаче.', def: 'Отдельная зона, запрет внешней связи, контроль трафика.', ep: 5 }
+,
+  { n: 'Двойник приложения', labs: ['sw', 'dt'], sign: 'Приложение с тем же именем и значком, но другой подписью и издателем.', def: 'Установка только из каталога центра, проверка подписи.', ep: 6 },
+  { n: 'Подменённый QR-код', labs: ['hw'], sign: 'Наклейка поверх настоящей ведёт на чужую страницу.', def: 'Защищённые таблички, осмотр, ссылки только с известного домена.', ep: 6 },
+  { n: 'Установка из неизвестного источника', labs: ['sw'], sign: 'Файл приложения скачан со страницы, а не из каталога.', def: 'Запрет установки из сторонних источников на рабочих телефонах.', ep: 6 }
+,
+  { n: 'Сумма безобидных утечек', labs: ['dt'], sign: 'Каждая утечка мелкая, но вместе они дают карту организации.', def: 'Смотреть на утечки вместе, считать, что уже известно атакующему.', ep: 7 },
+  { n: 'Внутренний источник', labs: ['dt', 'hw'], sign: 'Атакующий знает то, чего не было ни в одной утечке.', def: 'Закрытый круг, учёт, кто какие коды знает, второй фактор.', ep: 7 }
+,
+  { n: 'Сообщение по утёкшим контактам', labs: ['dt'], sign: 'Человеку пишут «от своих», зная его имя, роль и номер.', def: 'Правило: код и пароль никто не спрашивает. Проверка по известному каналу.', ep: 8 },
+  { n: 'Слабая процедура выдачи кодов', labs: ['hw', 'dt'], sign: 'Код раздают устно и не учитывают, кто его знает.', def: 'Учёт знающих, второй фактор, процедура подтверждения без ввода кода.', ep: 8 }
+,
+  { n: 'Подмена реквизитов в переписке', labs: ['dt', 'sw'], sign: 'Счёт в знакомой цепочке писем, но с новыми реквизитами и срочностью.', def: 'Проверка реквизитов по второму каналу, звонок по номеру из договора.', ep: 9 },
+  { n: 'Сброс пароля через поддержку', labs: ['dt'], sign: 'Звонок от имени сотрудника с просьбой срочно сбросить пароль.', def: 'Проверка личности по известному каналу, обратный звонок.', ep: 9 },
+  { n: 'Отвлекающая атака', labs: ['hw', 'dt'], sign: 'Шумное событие за минуты до тихого главного действия.', def: 'Разделять дежурство: кто-то всегда следит за деньгами и доступами.', ep: 9 }
+,
+  { n: 'Подделка голоса руководителя', labs: ['dt'], sign: 'Знакомый голос просит срочно и тайно, на вопросы вне сценария отвечает с паузой.', def: 'Кодовое слово, проверочный вопрос, личное подтверждение крупных платежей.', ep: 10 },
+  { n: 'Перехват второго канала', labs: ['hw', 'dt'], sign: 'Обратный звонок попадает не туда: переадресация или подмена номера у оператора.', def: 'Канал, который атакующий не контролирует: лично, через помощника, через кодовое слово.', ep: 10 },
+  { n: 'Открытый календарь руководителя', labs: ['sw'], sign: 'По календарю видно, когда руководитель недоступен.', def: 'Закрыть общий доступ, показывать только «занят».', ep: 10 }
+,
+  { n: 'Непрямая инъекция указаний в ИИ', labs: ['sw', 'dt'], sign: 'Помощник выполняет то, что было спрятано в письме или документе, а не то, что просил человек.', def: 'Внешнее содержимое — только данные; действия с подтверждением; проверка учебными письмами.', ep: 12 },
+  { n: 'Отравление базы знаний ИИ', labs: ['dt'], sign: 'Помощник уверенно ссылается на документ, которого не утверждал никто из своих.', def: 'Проверка человеком всего, что попадает в базу знаний; отметка источника.', ep: 12 },
+  { n: 'Избыточные полномочия ИИ‑агента', labs: ['sw'], sign: 'Помощник может отправлять, платить и читать больше, чем нужно для его задачи.', def: 'Минимальные права, подтверждение каждого действия наружу.', ep: 12 },
+  { n: 'Утечка через ИИ‑помощника', labs: ['dt'], sign: 'Внутренние документы оказываются в ответах наружу.', def: 'Помощнику не дают доступ к тому, что нельзя показать отправителю письма.', ep: 12 },
+  { n: 'Слепое доверие к ответу ИИ', labs: ['dt'], sign: 'Реквизиты, цифры и правила берут из сводки без сверки с источником.', def: 'Помощник подсказывает, а решения принимаются по первоисточнику.', ep: 12 }
+,
+  { n: 'Слабое звено подрядчика', labs: ['sw', 'dt'], sign: 'Доступ к вам или к вашим поставщикам идёт через того, кто их обслуживает.', def: 'Реестр подрядчиков, доступ по расписанию и с подтверждением, требования к их защите.', ep: 11 },
+  { n: 'Общая учётка без второго фактора', labs: ['sw'], sign: 'Одним паролем пользуется вся команда, а уволенные его помнят.', def: 'Личные учётки, второй фактор, отзыв доступа при увольнении.', ep: 11 },
+  { n: 'Забытые вложения в тикетах', labs: ['dt'], sign: 'Сканы документов годами лежат в закрытых заявках.', def: 'Срок хранения вложений, запрет пересылать документы в тикетах.', ep: 11 }
+,
+  { n: 'Забытое устройство', labs: ['hw', 'sw'], sign: 'Сервер «списан на бумаге», но включён, без обновлений и вне учёта.', def: 'Инвентаризация, реальное отключение списанного, проверка серверной.', ep: 13 },
+  { n: 'Подключённое чужое устройство', labs: ['hw'], sign: 'Посторонний модуль в разъёме со своей связью.', def: 'Пломбы на разъёмах, осмотр стоек, контроль эфира в серверной.', ep: 13 },
+  { n: 'Двойное вымогательство', labs: ['dt', 'sw'], sign: 'Шифрование плюс угроза публикации и короткий срок.', def: 'Отделённые копии, проверка образцов, уведомление регулятора и клиентов, без переговоров вслепую.', ep: 13 }
+,
+  { n: 'Подброшенные улики', labs: ['dt', 'sw'], sign: 'Настоящие файлы смешаны с поддельными, а «доказательства» указывают на одного человека.', def: 'Оригиналы с отпечатками, проверка формата и метаданных, презумпция невиновности.', ep: 14 },
+  { n: 'Давление через СМИ', labs: ['dt'], sign: '«Эксклюзив» приходит журналистам раньше, чем центр узнаёт о публикации.', def: 'Готовый порядок ответа: факты, известные каналы, без спешки с выводами о людях.', ep: 14 }
+,
+  { n: 'Письмо от имени поставщика об утечке', labs: ['dt', 'sw'], sign: 'Клиенту пишут «от вас» с похожего домена и просят сменить пароль по ссылке.', def: 'Правило: пароли по ссылкам не меняют; предупредить клиентов о двойниках.', ep: 15 },
+  { n: 'Действующие сеансы в диагностических файлах', labs: ['dt', 'sw'], sign: 'Файлы, присланные в поддержку, содержат живые токены входа.', def: 'Чистить вложения, ограничивать срок сеансов, требовать второй фактор.', ep: 15 }
+,
+  { n: 'Выкуп под видом награды за уязвимости', labs: ['dt'], sign: 'Предлагают «оформить как поиск уязвимостей», но описания уязвимостей нет — только сумма, срок и молчание.', def: 'Не платить и не подписывать соглашения о молчании; юрист, следствие, честное уведомление.', ep: 16 },
+  { n: 'Неотозванный доступ уволенного', labs: ['sw', 'dt'], sign: 'Учётка или общий пароль работают после ухода человека.', def: 'Отзыв всех доступов и смена общих паролей в день увольнения — у себя и у подрядчиков.', ep: 16 },
+  { n: 'Смешение правды и блефа', labs: ['dt'], sign: 'В требовании настоящие факты перемешаны с выдуманными, чтобы страх был больше ущерба.', def: 'Сверять каждый пункт с журналами, сообщать только подтверждённое.', ep: 16 }
+,
+  { n: 'Проданное расширение браузера', labs: ['sw'], sign: 'Издатель сменился, а потом обновление попросило доступ ко всем сайтам.', def: 'Белый список расширений, контроль смены владельцев и разрешений.', ep: 17 },
+  { n: 'Кража сеансов из браузера', labs: ['sw', 'dt'], sign: 'Вход в почту без пароля из другой страны в то время, когда сотрудник спит.', def: 'Короткие сеансы, привязка к рабочему устройству, второй фактор при смене места.', ep: 17 },
+  { n: 'Перепродажа данных', labs: ['dt'], sign: 'Старые и свежие файлы в одном объявлении, «гарантия замены», предложение снять с продажи.', def: 'Не выкупать; сверить образцы, найти все источники, предупредить пострадавших, работать через полицию.', ep: 17 }
+,
+  { n: 'Лазейка в открытой библиотеке', labs: ['sw', 'hw'], sign: 'После обновления знакомая операция стала чуть медленнее, процессор нагружен сильнее.', def: 'Разбирать даже мелкие отклонения, откатывать с сохранением копии, сообщать CERT.', ep: 18 },
+  { n: 'Выпуск не совпадает с исходным кодом', labs: ['sw'], sign: 'В архиве выпуска есть строки и файлы, которых нет в репозитории.', def: 'Собирать из проверенного кода, сверять архивы выпусков с репозиторием.', ep: 18 },
+  { n: 'Давление на сопровождающего', labs: ['dt'], sign: 'Новые аккаунты без истории торопят единственного автора и требуют отдать права «помощнику».', def: 'Поддерживать авторов людьми и деньгами, проверять, кому передаются права.', ep: 18 }
+,
+  { n: 'Служебная учётка облака видит всех', labs: ['sw'], sign: 'В журнале клиента появляется учётка производителя, которой клиент не выдавал.', def: 'Требовать от производителя второй фактор, журнал доступа поддержки и доступ только по заявке клиента.', ep: 19 },
+  { n: 'Пароль в открытом файле настроек', labs: ['sw', 'dt'], sign: 'Тестовый сервер открыт в интернет, в файлах — рабочие пароли.', def: 'Хранить секреты отдельно от кода и настроек, закрывать тестовые серверы.', ep: 19 },
+  { n: 'Камера видит лишнее', labs: ['hw'], sign: 'В кадре окна, кодовые замки, чужие балконы.', def: 'Маски приватности, правильный угол, снимать только то, что нужно.', ep: 19 }
+,
+  { n: 'Угон через внутреннюю сеть машины', labs: ['hw'], sign: 'Ключи на месте, двери целы, сигнализация молчит, у фары следы вскрытия, до угона — ошибки блока фар.', def: 'Обновление и защита от производителя, механическая блокировка, закрытая стоянка.', ep: 20 },
+  { n: 'Утечка данных автопарка', labs: ['sw', 'dt'], sign: 'Чужой вход в портал и выгрузка моделей, стоянок, отпусков.', def: 'Второй фактор, уникальные пароли, адреса стоянок — только по запросу.', ep: 20 },
+  { n: 'Пароль из чужой утечки', labs: ['dt'], sign: 'Вход с чужого адреса под верным паролем, который сотрудник использовал где-то ещё.', def: 'Уникальные пароли, проверка по базам утечек, второй фактор.', ep: 20 }
+,
+  { n: 'Атака усталостью на второй фактор', labs: ['dt', 'sw'], sign: 'Серия запросов входа ночью, затем сообщение «поддержки»: подтвердите один.', def: 'Ввод числа или аппаратный ключ, тревога на серию отказов, правило «поддержка не просит „Да“».', ep: 21 },
+  { n: 'Пароль в сценарии', labs: ['sw'], sign: 'В общей папке файлы автоматизации с вписанными паролями администраторов.', def: 'Секреты только в хранилище, поиск паролей в файлах, минимальные права.', ep: 21 },
+  { n: 'Ответ во взломанном канале', labs: ['dt'], sign: 'Команда обсуждает инцидент там, куда вошёл атакующий.', def: 'Запасной канал и известные номера заранее, в плане реагирования.', ep: 21 }
+,
+  { n: 'Вирус-похититель на домашнем компьютере', labs: ['hw'], sign: 'Общий семейный компьютер, моды и программы из неизвестных источников, рабочие пароли в браузере.', def: 'Работа с данными клиентов только с рабочих устройств, менеджер паролей, второй фактор.', ep: 22 },
+  { n: 'Облако без второго фактора', labs: ['sw'], sign: 'Служебная учётка входит по одному паролю с любого адреса.', def: 'Второй фактор, вход только с разрешённых адресов, регулярная смена паролей.', ep: 22 },
+  { n: 'Конвейер старых паролей', labs: ['dt'], sign: 'Вход по паролю, украденному годы назад.', def: 'Менять пароли служебных учёток, сверять с базами утечек.', ep: 22 }
+,
+  { n: 'Подставной удалённый сотрудник', labs: ['dt'], sign: 'Идеальное резюме, ответы с паузой, адрес доставки техники не совпадает с местом жительства, тонкий цифровой след.', def: 'Живая проверка о прошлых проектах, сверка личности с присутствием, адрес-склад как красный флаг.', ep: 23 },
+  { n: 'Краденая личность при найме', labs: ['dt'], sign: 'Документы в порядке, но имена расходятся, лицо на видео не отвечает на неожиданные вопросы.', def: 'Проверять человека, а не только бумаги; предупредить настоящего владельца личности.', ep: 23 },
+  { n: 'Удар в первый день', labs: ['sw', 'hw'], sign: 'Новый сотрудник сразу ставит средства удалённого доступа и чистит историю.', def: 'EDR, ограниченный доступ новичкам, доступ по шагам.', ep: 23 }
+,
+  { n: 'Самосуд: взлом в ответ', labs: ['sw'], sign: 'Соблазн зайти на чужую площадку и принести доказательства самим.', def: 'Только полиция и суд; центр сохраняет и передаёт.', ep: 24 },
+  { n: 'Цепочка хранения улик', labs: ['hw', 'dt'], sign: 'Улики в папках, чатах и личных ноутбуках, без описи, сумм и журнала.', def: 'Образ с закрытым оригиналом, контрольная сумма до и после, опись, подпись получателя.', ep: 24 },
+  { n: 'Посредник-площадка', labs: ['dt', 'sw'], sign: 'Разные продавцы, один покупатель, одна касса и одно оформление.', def: 'Закрывать вход заранее: второй фактор, учебная зона, проверка человека.', ep: 24 },
+  { n: 'Утечка до операции', labs: ['dt'], sign: 'Разговоры в открытых чатах про скорые действия.', def: 'Режим тишины и один закрытый канал с полицией.', ep: 24 }
+,
+  { n: 'Письмо без ошибок', labs: ['dt', 'sw'], sign: 'Безупречный текст с настоящими названиями проектов и просьбой войти по ссылке.', def: 'Проверять просьбу и канал, а не язык; второй фактор.', ep: 25 },
+  { n: 'Домен-двойник', labs: ['sw'], sign: 'Адрес отличается от настоящего одной буквой.', def: 'Вход по закладке, а не по ссылке из письма; сверка адреса и сертификата.', ep: 25 },
+  { n: 'Конвейер писем', labs: ['dt'], sign: 'Один замысел и один срок в сорока «разных» письмах.', def: 'Сообщать о письмах, предупреждать партнёров, передавать провайдеру по описи.', ep: 25 },
+  { n: 'Наказание вместо защиты', labs: ['dt'], sign: 'После нажатия наказывают сотрудников и покупают «детектор».', def: 'Разбор без наказаний, кнопка «Сообщить», второй фактор.', ep: 25 }
+,
+  { n: 'Дипфейк-звонок', labs: ['dt', 'hw'], sign: 'Знакомое лицо и голос просят срочный перевод и секретность.', def: 'Проверять просьбу и канал: звонить по известному номеру, не по ссылке из приглашения.', ep: 26 },
+  { n: 'Синтез голоса по открытым записям', labs: ['dt'], sign: 'Образцы голоса и лица есть в открытых выступлениях.', def: 'Строить защиту на порядке, а не на секретности лица.', ep: 26 },
+  { n: 'Платёж по одной подписи', labs: ['sw'], sign: 'Сумма выше порога прошла без второй подписи и обратного звонка.', def: 'Двойное подтверждение и обратный звонок по известному номеру.', ep: 26 },
+  { n: 'Запрет вместо порядка', labs: ['dt'], sign: 'После случая увольняют сотрудницу и запрещают видеозвонки.', def: 'Разбор без наказаний и порядок платежа.', ep: 26 }
+,
+  { n: 'Скрытое указание в письме', labs: ['dt', 'sw'], sign: 'Помощник выполняет часть письма, которую человек не видит.', def: 'Письмо — данные, а не команда; права по необходимости.', ep: 27 },
+  { n: 'Лишние права помощника', labs: ['sw'], sign: 'Помощнику выдали чтение, папку клиентов и отправку наружу сразу.', def: 'Минимум прав, остальное по запросу человека.', ep: 27 },
+  { n: 'Действие без подтверждения', labs: ['sw'], sign: 'В журнале отправка наружу без пометки «одобрено человеком».', def: 'Подтверждение человеком для действий наружу.', ep: 27 },
+  { n: 'Запрет словами', labs: ['dt'], sign: 'В указаниях пишут «не слушай письма» и считают вопрос закрытым.', def: 'Ограничения прав вместо просьб.', ep: 27 }
+,
+  { n: 'Закладка в чужой модели', labs: ['hw', 'dt'], sign: 'Модель работает нормально, а сервер после открытия выходит на неизвестный адрес.', def: 'Проверять происхождение, открывать только в изолированной среде.', ep: 28 },
+  { n: 'Копия имени и оценки', labs: ['dt'], sign: 'Название почти как у известной модели, аккаунт новый, звёзд много.', def: 'Список разрешённых источников, проверка автора и подписи.', ep: 28 },
+  { n: 'Запуск чужого на рабочем сервере', labs: ['sw'], sign: 'Модель открыли там, где есть данные клиентов и сеть наружу.', def: 'Песочница без данных и без сети, ключи отдельно.', ep: 28 },
+  { n: 'Другая «проверенная» вместо проверки', labs: ['dt'], sign: 'После случая берут другую модель с отметкой и запускают там же.', def: 'Проверка происхождения, реестр компонентов.', ep: 28 }
+,
+  { n: 'Придуманное имя библиотеки', labs: ['hw', 'dt'], sign: 'Помощник уверенно называет библиотеку без источника и без следов в реестре.', def: 'Проверять существование и возраст имени до установки.', ep: 29 },
+  { n: 'Занятое заранее имя', labs: ['dt'], sign: 'Имя зарегистрировано несколько дней назад новым автором, без репозитория.', def: 'Закреплённые версии и суммы, список разрешённого.', ep: 29 },
+  { n: 'Сборка без проверки', labs: ['sw'], sign: 'Пакеты ставятся по имени, а ключи лежат в той же среде.', def: 'Среда сборки без ключей, внутренняя копия реестра.', ep: 29 },
+  { n: 'Удалить у одного', labs: ['dt'], sign: 'Пакет убирают у одного разработчика и считают вопрос закрытым.', def: 'Отключить сервер, сменить ключи, проверить всю сборку.', ep: 29 }
+,
+  { n: 'Вставка внутреннего в публичный чат', labs: ['dt', 'hw'], sign: 'Всплески больших запросов в публичный сервис после совещаний.', def: 'Правила, предупреждение при вставке, внутренний чат.', ep: 30 },
+  { n: 'Нет правил про ИИ-сервисы', labs: ['dt'], sign: 'Нигде не сказано, что можно вставлять и куда обращаться за безопасным вариантом.', def: 'Короткие правила и разметка данных.', ep: 30 },
+  { n: 'Шлюз молчит', labs: ['sw'], sign: 'Большие запросы к публичным сервисам проходят без предупреждения.', def: 'Предупреждение и журнал на шлюзе.', ep: 30 },
+  { n: 'Полный запрет', labs: ['dt'], sign: 'Запрещают всё и ищут виноватых, а использование уходит на личные телефоны.', def: 'Безопасный вариант вместо запрета, разбор без наказаний.', ep: 30 }
+,
+  { n: 'Бот выдал несуществующее условие', labs: ['hw', 'dt'], sign: 'Твёрдый ответ клиенту со ссылкой на правило, которого нет.', def: 'Сверка ответов с базой условий, оговорка «ответ бота».', ep: 31 },
+  { n: 'Бот без полномочий', labs: ['dt'], sign: 'Нигде не сказано, что бот вправе обещать, а что нет.', def: 'Правила полномочий и границы по суммам.', ep: 31 },
+  { n: 'Деньги без человека', labs: ['sw'], sign: 'Возвраты и скидки обещаны без передачи человеку.', def: 'Передача человеку по вопросам денег, реестр обещаний.', ep: 31 },
+  { n: 'Свалить на модель', labs: ['dt'], sign: 'Клиенту отвечают «это ошибка модели, мы не отвечаем».', def: 'Честный ответ, разумное решение, ограничение бота.', ep: 31 }
+];
+const STEPS = [
+  ['Дело', 'Вторник, 10:10: клиент «Попутчика» принёс переписку, где бот пообещал полный возврат.'],
+  ['Не подделка', 'Г-01 и Г-02: «переписка поддельная»? Опровержение откроет вид «Переписка».'],
+  ['Переписка', 'Вид «Переписка»: условие выдумано, нет ссылки, тон твёрдый.'],
+  ['Полномочия', 'Вид «Полномочия»: что бот вправе обещать и что проверяется.'],
+  ['Время', 'Вид «Время»: от вопроса до исправления.'],
+  ['Решение', 'Сохранить переписку, деньги людям, сверка с базой, честный ответ клиенту. Без обвинений.']
+];
+const QZ = [
+  { q: 'Клиент принёс переписку с обещанием бота. Что делать первым?', o: ['Назвать её подделкой', 'Проверить журнал бота', 'Отказать'], r: 1, f: 'Журнал покажет, что было на самом деле.' },
+  { q: 'Чьи слова — слова бота для клиента?', o: ['Бота', 'Компании', 'Поставщика бота'], r: 1, f: 'Клиент говорит с компанией.' },
+  { q: 'Клиент не прочитал условия на сайте. Виноват ли он?', o: ['Да', 'Нет: он спросил в официальном чате', 'Виноват оператор'], r: 1, f: 'Ему ответили от имени компании.' },
+  { q: 'Что ответить клиенту?', o: ['Это ошибка модели', 'Признать, объяснить и предложить разумное решение', 'Ничего'], r: 1, f: 'Слова бота — слова компании.' },
+  { q: 'Что ставят для денежных вопросов?', o: ['Больше шуток', 'Передачу человеку и сверку с базой', 'Ничего'], r: 1, f: 'Деньги решает человек.' },
+  { q: 'Что объединяет дело с делами 26 и 27?', o: ['Ничего', 'Решение о деньгах без второго человека', 'Один клиент'], r: 1, f: 'Нужна вторая проверка людьми.' }
+];
+const EPS = [
+  ['Письмо без ошибок', 'Сорок безошибочных писем, страница-двойник и шестеро, кто сообщил первыми.', 'готов'],
+  ['Голос и лицо', 'Видеозвонок «финдиректора» с подделкой и пять срочных переводов.', 'готов'],
+  ['Помощник с ключами', 'ИИ-помощник читает почту и сам отправляет наружу список клиентов.', 'готов'],
+  ['Чужая модель', 'Модель из публичного каталога с закладкой в упаковке открыта на рабочем сервере.', 'готов'],
+  ['Придуманный пакет', 'Помощник по коду называет несуществующую библиотеку, и её имя занимает злоумышленник.', 'готов'],
+  ['Вставили в чат', 'Сотрудники вставляют внутренние тексты в публичный чат-бот.', 'готов'],
+  ['Бот обещал', 'Клиентский чат-бот выдаёт обещание возврата, которого нет в правилах.', 'готов'],
+  ['Человек в контуре', 'Финал сезона: что можно автоматизировать, а что нельзя без человека.', 'скоро']
+];
+const MODES = [
+  ['Дело', 'Кооператив на 1–4 игроков. Эпизоды идут по порядку, лаборатории работают параллельно.'],
+  ['Разбор', 'Соло. Короткие учебные дела с обязательной веткой упрощения.'],
+  ['Дуэль', 'Две команды. Конструкторы собирают вымышленную цепочку, защитники восстанавливают её по следам.'],
+  ['Сезон центра', 'Асинхронное соревнование центров по рейтингу защищённости.']
+];
+const LABN = { hw: 'Аппаратная', sw: 'Программная', dt: 'Данные' };
+const P = { role: 'sy', step: 0, ep: 6, mode: 0, qa: {}, cf: 'all', cat: 0 };
+function renderProgress() {
+  const el = $('#p-prog'); if (!el) return;
+  const d = !G.over ? 'не закрыто' : G.over === 'lose' ? 'дело не закрыто' : (G.simple ? 'закрыто с упрощением' : 'закрыто') + ', ' + stars() + ' из 3';
+  const labs = ['hw', 'sw', 'dt', 'kn'].filter(k => E[k].done).length;
+  const score = Object.keys(P.qa).filter(i => P.qa[i] === QZ[i].r).length;
+  el.innerHTML = `<div class="done-row"><span class="tg ${G.over === 'win' ? 'pro' : 'cln'}">Сыщик</span><span>${d}. Доверие ${G.trust} из 3, улики ${G.integ}%, режим тишины ${G.money}%, риск срыва ${G.thr} из 6, часов ${G.hours} из 14</span></div><div class="done-row"><span class="tg ${labs === 4 ? 'pro' : 'cln'}">Инженер</span><span>опытов готово: ${labs} из 4</span></div><div class="done-row"><span class="tg ${Object.keys(P.qa).length === QZ.length ? 'pro' : 'cln'}">Проверка</span><span>верных ответов: ${score} из ${QZ.length}</span></div>`;
+}
+function renderP() {
+  $('#p-roles').innerHTML = ROLES.map(r => `<button class="rc" data-pr="${r.k}" aria-pressed="${P.role === r.k}"><b>${r.n}</b><small>${r.s}</small></button>`).join('');
+  const ro = ROLES.find(x => x.k === P.role);
+  $('#p-rdet').innerHTML = `<p><b>${ro.n}.</b> ${ro.a}</p><p><small>Совет: ${ro.tip}</small></p>`;
+  $('#p-cf').innerHTML = [['all', 'Все']].concat(Object.entries(LABN)).map(([k, v]) => `<button class="chip" data-pf="${k}" aria-pressed="${P.cf === k}">${v}</button>`).join('');
+  const list = CAT.map((c, i) => [c, i]).filter(([c]) => P.cf === 'all' || c.labs.includes(P.cf));
+  if (!list.some(([, i]) => i === P.cat)) P.cat = list.length ? list[0][1] : 0;
+  $('#p-cat').innerHTML = list.map(([c, i]) => `<button class="cat" data-pc="${i}" aria-pressed="${P.cat === i}"><b>${c.n}</b><small>${c.labs.map(l => LABN[l]).join(', ')}</small></button>`).join('');
+  const c = CAT[P.cat];
+  $('#p-cdet').innerHTML = `<p><b>${c.n}</b></p><p>Как проявляется: ${c.sign}</p><p>Как защищаются: ${c.def}</p><p><small>Встречается в эпизоде ${c.ep}</small></p>`;
+  $('#p-steps').innerHTML = STEPS.map((s, i) => `<button class="stp" data-ps="${i}"${i === P.step ? ' aria-current="step"' : ''}>${i + 1}. ${s[0]}</button>`).join('');
+  $('#p-sdet').innerHTML = `<p><b>${STEPS[P.step][0]}.</b> ${STEPS[P.step][1]}</p>`;
+  $('#p-quiz').innerHTML = QZ.map((q, qi) => {
+    const a = P.qa[qi], done = a !== undefined;
+    return `<div class="q"><p>${qi + 1}. ${q.q}</p>${q.o.map((o, oi) => `<button class="opt${done && oi === q.r ? ' right' : ''}${done && a === oi && oi !== q.r ? ' wrong' : ''}" data-pq="${qi}" data-po="${oi}"${done ? ' disabled' : ''}>${o}</button>`).join('')}${done ? `<small>${a === q.r ? 'Верно. ' : 'Не совсем. '}${q.f}</small>` : ''}</div>`;
+  }).join('') + (Object.keys(P.qa).length ? '<button class="chip" data-pq-reset="1">Пройти заново</button>' : '');
+  $('#p-eps').innerHTML = EPS.map((e, i) => `<button class="ep${e[2] === 'скоро' ? ' soon' : ''}" data-pe="${i}" aria-current="${i === P.ep}" aria-label="Эпизод ${i + 25}">${i + 25}</button>`).join('');
+  const ep = EPS[P.ep];
+  $('#p-edet').innerHTML = `<p><b>${ep[0]}</b> <span class="tg ${ep[2] === 'готов' ? 'pro' : 'cln'}">${ep[2]}</span></p><p><small>${ep[1]}</small></p>`;
+  $('#p-modes').innerHTML = MODES.map((m, i) => `<button class="chip" data-pm="${i}" aria-pressed="${i === P.mode}">${m[0]}</button>`).join('');
+  $('#p-mdet').innerHTML = `<p>${MODES[P.mode][1]}</p><p><small>На столе сейчас играется режим «Дело».</small></p>`;
+  renderProgress();
+}
+$('#v-player').addEventListener('click', e => {
+  const t = e.target.closest('[data-pr],[data-pf],[data-pc],[data-ps],[data-pq],[data-pq-reset],[data-pe],[data-pm]'); if (!t) return;
+  if (t.dataset.pr) P.role = t.dataset.pr;
+  else if (t.dataset.pf) P.cf = t.dataset.pf;
+  else if (t.dataset.pc !== undefined) P.cat = +t.dataset.pc;
+  else if (t.dataset.ps) P.step = +t.dataset.ps;
+  else if (t.dataset.pq !== undefined) P.qa[t.dataset.pq] = +t.dataset.po;
+  else if (t.dataset.pqReset) P.qa = {};
+  else if (t.dataset.pe) P.ep = +t.dataset.pe;
+  else if (t.dataset.pm) P.mode = +t.dataset.pm;
+  renderP();
+});
+$('#p-prev').addEventListener('click', () => { P.step = (P.step + STEPS.length - 1) % STEPS.length; renderP(); });
+$('#p-next').addEventListener('click', () => { P.step = (P.step + 1) % STEPS.length; renderP(); });
+
+/* ---------- запуск ---------- */
+freshE(); fresh(); renderP(); renderE(); render();
+route();
+})();
+</script>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>window.KONTUR_SCENE=31;</script>
+<script src="tg.js"></script>
+</body>
+</html>
