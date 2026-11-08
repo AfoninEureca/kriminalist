@@ -119,9 +119,9 @@ h1,h2,h3{font-family:var(--f-d);margin:0;text-wrap:balance}
 .opt{display:block;width:100%;text-align:left;border:1.5px solid var(--line);background:var(--panel);border-radius:10px;padding:10px 12px;margin-bottom:8px}
 .opt[aria-pressed=true]{border-color:var(--accent);background:var(--tint)}
 /* окна */
-#ov{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--bg) 80%,transparent);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
+#ov{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--bg) 80%,transparent);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto}
 #ov.on{display:flex}
-.modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px;max-width:640px;width:100%;display:grid;gap:12px}
+.modal{margin:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);padding:18px;max-width:640px;width:100%;display:grid;gap:12px}
 .modal h2{font-size:24px}
 .sp{display:grid;grid-template-columns:72px 1fr;gap:14px;align-items:start}
 .bubble{background:var(--panel2);border-radius:4px 14px 14px 14px;padding:12px 14px;font-size:16px}
@@ -182,6 +182,11 @@ const CH = {
   reg:{n:'Лидия Громова',r:'Инспектор надзорного органа',s:'Надзорный орган',av:{skin:'#efcaa9',hair:'#7a7a7a',hs:'short',shirt:'#14532d',bg:'#d3e8d9'}},
   ins:{n:'Виктор Ставров',r:'Страховой эксперт',s:'Страховщик',av:{skin:'#dcae88',hair:'#222',hs:'short',beard:1,shirt:'#1e3a8a',bg:'#d6dff5'}},
   ai:{n:'Помощник',r:'Внутренний ИИ-ассистент «Меридиана»',s:'Помощник',av:{skin:'#bfe3e0',hair:'#0f766e',hs:'short',glasses:1,shirt:'#115e59',bg:'#cdeeea'}},
+  new:{n:'Тимофей Баженов',r:'Новый сотрудник',s:'Новичок',av:{skin:'#efc9a6',hair:'#6b3f1d',hs:'messy',shirt:'#0369a1',bg:'#d3e8f6'}},
+  tea:{n:'Марина Фомина',r:'Учитель информатики',s:'Школа',av:{skin:'#f1cdb0',hair:'#8a5a2e',hs:'bun',glasses:1,shirt:'#9d174d',bg:'#f6d6e4'}},
+  doc:{n:'Андрей Лукин',r:'Главный врач поликлиники',s:'Поликлиника',av:{skin:'#e2b48c',hair:'#bdbdbd',hs:'short',glasses:1,shirt:'#0f766e',bg:'#d2eeea'}},
+  shp:{n:'Зоя Ермолаева',r:'Владелица семейной лавки',s:'Лавка',av:{skin:'#ecc6a2',hair:'#4a2c17',hs:'long',shirt:'#c2410c',bg:'#f7dcc9'}},
+  gar:{n:'Игорь Нестеров',r:'Бывший автор сборника центра',s:'«Садовник»',av:{skin:'#d9b08c',hair:'#555',hs:'side',beard:1,shirt:'#3f3f46',bg:'#dcdce0'}},
   arh:{n:'Архивариус',r:'Центр «Контур»',s:'Центр',av:{skin:'#d8b590',hair:'#e6e6e6',hs:'bun',glasses:1,shirt:'#5c4b37',bg:'#e6dccd'}}
 };
 const TEAM=['bel','erm','has','orl','mel','vor','sed','kov'];
